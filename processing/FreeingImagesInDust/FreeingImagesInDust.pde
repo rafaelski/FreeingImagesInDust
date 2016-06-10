@@ -91,21 +91,30 @@ float growing = .8;
 
 
 float FanForcesX, FanForcesY;
-float[] Accel_x = {  .1, -1, -20, 14, .1, 10, -1, 15};
-float[] Accel_y = {  .1, -1, 10, -2, .1, 10, 1, 15};
+float[] Accel_x = {  
+  .1, -1, -20, 14, .1, 10, -1, 15
+};
+float[] Accel_y = {  
+  .1, -1, 10, -2, .1, 10, 1, 15
+};
 int timeEllapsed;
 
-int[] FanTimes = {  10, 20, 30, 40, 50, 60, 70, 80};
+int[] FanTimes = {  
+  10, 20, 30, 40, 50, 60, 70, 80
+};
 
 boolean bUseSerial = false;
 float totalAlive = 0;
 
 int radius = 60;
+int timeStartedFace = 0;
+int timeLastNoFace = 0;
+float alphaFade = 255;
 
 void setup() {
   //size(screenWidth, screenHeight, P3D);    // use OPENGL rendering for bilinear filtering on texture
   size(1152, 768, P3D);
-  
+
   if (bUseSerial) {
     String portName = Serial.list()[2];
     myPort = new Serial(this, portName, 9600);
@@ -119,6 +128,9 @@ void setup() {
 
   liveCam = new Capture(this, screenWidth, screenHeight);
   liveCam.start();
+
+  int opencvW = screenWidth/8;
+  int opencvH = screenHeight/8;
 
   opencv = new OpenCV(this, screenWidth/8, screenHeight/8);
   opencv.loadCascade(OpenCV.CASCADE_FRONTALFACE);  
@@ -162,67 +174,110 @@ void draw() {
     }
     stillFrame.updatePixels();
   }
-  
+
   if (totalAlive == 0) {
     for ( int i = 0; i < screenWidth*screenHeight; i++) {
       stillFrame.pixels[i] = color(255, 255, 255, 255);
     }
     stillFrame.updatePixels();
   }
-  
-  
+
+
   copyImgCV.copy(liveCam, 0, 0, screenWidth, screenHeight, 0, 0, screenWidth/8, screenHeight/8);
   opencv.loadImage(copyImgCV);
 
 
+  if (timeStartedFace>0 && (millis()-timeStartedFace)/1000.0 > 15){ 
+    if(alphaFade > 0)alphaFade-=2;
+  }
+
   for ( int i = 0; i < screenWidth*screenHeight; i++) {
     color c = stillFrame.pixels[i];
-    color c2 = liveCam.pixels[i];
+
     //color c3 = color (red(c2), green(c2), blue(c2), 255); //Simpler but slower method;
 
-    float c3R = c2 >> 16 & 0xFF;
-    float c3G = c2 >> 8 & 0xFF;
-    float c3B = c2 & 0xFF;
-     
-    color c3 = color(c3R, c3G, c3B, 255.0);
 
-    if ( alpha(c) > 0 ) stillFrame.pixels[i] = c3;
+
+
+
+    if ( alpha(c) > 0 ) { 
+
+     
+      color c2 = liveCam.pixels[i];
+      float c3R = c2 >> 16 & 0xFF;
+      float c3G = c2 >> 8 & 0xFF;
+      float c3B = c2 & 0xFF;
+      color c3 = color(c3R, c3G, c3B, alphaFade);
+      
+      stillFrame.pixels[i] = c3;
+    }
   }
 
   stillFrame.updatePixels();
   fluidSolver.update();
   faces = opencv.detect();
 
-  for (int i = 0; i < faces.length; i++) {
-    PosFaceX = faces[i].x * 8 ;
-    PosFaceY = faces[i].y  * 8 ;
-    WidthFace = faces[i].width * 8;
-    HeightFace = faces[i].height * 8;
-  }
+  int largestFace = 0;
+  int closestDist = width*height*1000; // hack to great big number
 
-  if (faces.length==1) { //If we have a face, trigger startDust and tells Arduino
+  for (int i = 0; i < faces.length; i++) {
+    int d = (int)dist(faces[i].x * 8, faces[i].y  * 8, width*.5, height*.5);
+    int faceSize = faces[i].width*faces[i].height;
+    //if(faceSize > largestFace){
+    //largestFace = faceSize;
+    if (d < closestDist && d < 400) {
+      closestDist = d;
+      PosFaceX = (faces[i].x - faces[i].width*.5) * 8 ;
+      PosFaceY = (faces[i].y - faces[i].height*.15)  * 8  ;
+      WidthFace = (faces[i].width+faces[i].width*1) * 8;
+      HeightFace = (faces[i].height+faces[i].height*.5) * 8;
+      //}
+    }
+    //PosFaceX = faces[i].x * 8 ;
+    //PosFaceY = faces[i].y  * 8 ;
+    //WidthFace = faces[i].width * 8;
+    //HeightFace = faces[i].height * 8;
+    //println(i + " w " + faces[i].width + " h " + faces[i].height);
+  }
+  //  if( faces.length > 0 ){
+  //  PosFaceX = faces[0].x * 8 ;
+  //    PosFaceY = faces[0].y  * 8 ;
+  //    WidthFace = faces[0].width * 8;
+  //    HeightFace = faces[0].height * 8;
+  //  }
+  //  
+
+  if (faces.length > 0) { //If we have a face, trigger startDust and tells Arduino
     startDust =true; 
     if (bUseSerial)  myPort.write('1');
     radius = 60;
-    
-      stroke(255, 0, 0);
-      strokeWeight(3);
-      noFill();
-      
-  } else {
+
+    stroke(255, 0, 0);
+    strokeWeight(3);
+    noFill();
+
+    if (timeStartedFace==0 && (millis()-timeLastNoFace)/1000.0 > 5) { 
+      timeStartedFace = millis();
+      timeLastNoFace = 0;
+      alphaFade = 255;
+    }
+  } 
+  else {
     if (bUseSerial)  myPort.write('0');
     radius = 0;
-    
-      noStroke();      
+
+    noStroke(); 
+    timeStartedFace = 0;
+    timeLastNoFace = millis();
   }
 
   PVector ploc = location;
   location.x = PosFaceX-faceXOff + map(noise(noff.x), 0, 1, 0, WidthFace+faceWOff);
   location.y = (PosFaceY-50)+faceYOff + map(noise(noff.y), 0, 1, 0, HeightFace+faceHOff);
 
-//  stroke(255, 0, 0);
-//  strokeWeight(3);
-//  rect(PosFaceX-faceXOff, (PosFaceY-50)+faceYOff, WidthFace+faceWOff, HeightFace+faceHOff);
+  //  stroke(255, 0, 0);
+  //  strokeWeight(3);
+  //  rect(PosFaceX-faceXOff, (PosFaceY-50)+faceYOff, WidthFace+faceWOff, HeightFace+faceHOff);
 
   noff.add(0.15, 0.15, 0);
 
@@ -230,7 +285,7 @@ void draw() {
   float mouseNormY = location.y * invHeight;
   //  float mouseVelX = (location.x - ploc.x) * invWidth;
   //  float mouseVelY = (location.y - ploc.y) * invHeight;
- 
+
 
   for (int i=0; i < 7; i++) {
     if (timeEllapsed/1000 > FanTimes[i]/2 && timeEllapsed/1000 < FanTimes[i+1]/2) {
@@ -241,38 +296,55 @@ void draw() {
     }
   }
 
-  if (startDust) addForce(mouseNormX, mouseNormY, FanForcesX, FanForcesY); //dx and dy means the velocity and direction
+  if (startDust) { 
+    addForce(mouseNormX, mouseNormY, FanForcesX, FanForcesY); //dx and dy means the velocity and direction
+    addForce(mouseNormX, mouseNormY+.25, FanForcesX, FanForcesY); //dx and dy means the velocity and direction
+  }
+  //  if (faceXOff <= 160 && faces.length>0) {
+  //    faceXOff += .45 *growing;
+  //    faceYOff += .2 *growing;
+  //    faceWOff += .9 *growing;
+  //    faceHOff += .5 *growing;
+  //  } else if (faceYOff <= 300 && faces.length>0) {
+  //    faceXOff += .1 *growing;
+  //    faceYOff += .2 *growing;
+  //    faceWOff += .2 *growing;
+  //    faceHOff -= .05 *growing;
+  //  }
+  if (faces.length>0 && (millis()-timeStartedFace)/1000.0 > 20) {
+    // grow in y+height direction until reach the bottom
+    if (faceHOff < height-250) {
+      faceHOff += 2 *growing;
+    }
 
-  if (faceXOff <= 160 && faces.length==1) {
-    faceXOff += .45 *growing;
-    faceYOff += .2 *growing;
-    faceWOff += .9 *growing;
-    faceHOff += .5 *growing;
-  } else if (faceYOff <= 300 && faces.length==1) {
-    faceXOff += .1 *growing;
-    faceYOff += .2 *growing;
-    faceWOff += .2 *growing;
-    faceHOff -= .05 *growing;
+    if ( faceWOff < WidthFace*1.5) {
+
+      faceWOff += .5 *growing;
+      faceXOff = faceWOff*.5;
+    }
   }
 
-//  println(timeEllapsed); 
-//  println("fans", FanForcesX);
+  //  println(timeEllapsed); 
+  //  println("fans", FanForcesX);
   totalAlive = 0;
   println ( "frameRate ", frameRate );
-  
+
   // draw everything
   pushMatrix();  
-    scale(-1, 1);
-    translate(-screenWidth, 0);
-    image(ourBackground, 0, 0);
-    image(stillFrame, 0, 0);
-    
-      rect(PosFaceX-faceXOff, (PosFaceY-50)+faceYOff, WidthFace+faceWOff, HeightFace+faceHOff);
-    
-    if (startDust==true) particleSystem.updateAndDraw();
+  scale(-1, 1);
+  translate(-screenWidth, 0);
+  image(ourBackground, 0, 0);
+  image(stillFrame, 0, 0);
+
+  rect(PosFaceX-faceXOff, (PosFaceY-50)+faceYOff, WidthFace+faceWOff, HeightFace+faceHOff);
+  ellipse(location.x, location.y, 10, 10);
+  ellipse(location.x, ( mouseNormY+.25)*screenHeight, 10, 10);
+
+
+  if (startDust==true) particleSystem.updateAndDraw();
   popMatrix();
-  
-  println("total alive "+ totalAlive);  
+
+  println("total alive "+ totalAlive);
 }
 
 
@@ -287,10 +359,10 @@ void keyPressed() {
     //CopyBG = true;
     ourBackground.copy(liveCam, 0, 0, screenWidth, screenHeight, 0, 0, screenWidth, screenHeight);
     break;
-    
- case '1':
-   saveFrame("data/savedBackground.jpg");
-   break;
+
+  case '1':
+    saveFrame("data/savedBackground.jpg");
+    break;
   }
   //println(frameRate);
 }
@@ -310,7 +382,7 @@ void addForce(float x, float y, float _FanForcesX, float _FanForcesY) {
     float velocityMult = 3.0f;
 
     int index = fluidSolver.getIndexForNormalizedPosition(x, y);
-    
+
     particleSystem.addParticles(x * screenWidth, y * screenHeight);//, 900);
 
     //_FanForcesX = (mouseX)/ ( width /5);  // _FanForcesX and dy means the velocity and direction
