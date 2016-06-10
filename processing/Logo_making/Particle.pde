@@ -30,53 +30,48 @@
  * ***********************************************************************/
 
 class Particle {
-  final static float MOMENTUM = 0.62;
-  final static float FLUID_FORCE = 1.7;
+  final static float MOMENTUM = 0.32;
+  final static float FLUID_FORCE = 1.25;
 
   float x, y;
   float vx, vy;
+  float radius;       // particle's size
   float alpha;
   float mass;
   float [] colors = new float[3];
-  float myForce = .016;
-  float wind;  // to match with the drection of the fans
+  float myForce = .01;
+  
 
-
-  void init(float x, float y, float currR, float currG, float currB) {//, boolean OFF) {
+  void init(float x, float y, float currR, float currG, float currB) {
     this.x = x;
     this.y = y;
     vx = 0;
     vy = 0;
+//    radius = 5;
     alpha  = random(0.3, 1);
-
-    mass = random(0.5, 1);
+    mass = random(0.1, 1);
     colors[0] = currR;
     colors[1] = currG;
     colors[2] = currB;
-    wind = -2;
   }
 
 
   void update() {
     // only update if particle is visible
     if (alpha == 0) return;
-      else totalAlive++;
 
     // read fluid info and add to velocity
     int fluidIndex = fluidSolver.getIndexForNormalizedPosition(x * invWidth, y * invHeight);
-    //  vx = fluidSolver.u[fluidIndex] * width * mass * FLUID_FORCE + vx * MOMENTUM;
-    //  vy = fluidSolver.v[fluidIndex] * height * mass * FLUID_FORCE + vy * MOMENTUM;
+//  vx = fluidSolver.u[fluidIndex] * width * mass * FLUID_FORCE + vx * MOMENTUM;
+//  vy = fluidSolver.v[fluidIndex] * height * mass * FLUID_FORCE + vy * MOMENTUM;
 
-    vx = fluidSolver.u[fluidIndex] * screenWidth * mass * myForce + vx * MOMENTUM;
-    vy = fluidSolver.v[fluidIndex] * screenHeight * mass * myForce + vy * MOMENTUM;
-
-    if (myForce < FLUID_FORCE) myForce += .005;
-
+    vx = fluidSolver.u[fluidIndex] * width * mass * myForce + vx * MOMENTUM;
+    vy = fluidSolver.v[fluidIndex] * height * mass * myForce + vy * MOMENTUM;
+  
+    if(myForce < FLUID_FORCE) myForce += .005;
     // simple gravity
-    //vy+= -.4;
+    //vy+= .5;
 
-    // wind
-    //vx+= wind;
 
     // update position
     x += vx;
@@ -86,18 +81,16 @@ class Particle {
     if (x<0) {
       x = 0;
       vx *= -1;
-    } 
-    else if (x > screenWidth) {
-      x = screenWidth;
+    } else if (x > width) {
+      x = width;
       vx *= -1;
     }  
 
     if (y<0) {
       y = 0;
       vy *= -1;
-    } 
-    else if (y > screenHeight) {
-      y = screenHeight;
+    } else if (y > height) {
+      y = height;
       vy *= -1;
     }
 
@@ -108,13 +101,8 @@ class Particle {
     }
 
     // fade out a bit (and kill if alpha == 0);
-    if (startDust == false) { 
-      alpha *= 0.38;
-    } else {
-      alpha *= 0.98;
-    }
-
-    if (alpha < 0.01)  alpha = 0;
+    alpha *= 0.99;
+    if (alpha < 0.01) alpha = 0;
   }
 
 
@@ -144,6 +132,7 @@ class Particle {
     gl.glVertex2f(x, y);
   }
 }
+
 
 
 
