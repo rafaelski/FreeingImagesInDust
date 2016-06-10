@@ -75,7 +75,7 @@ PImage stillFrame; //particles comes from here
 PVector noff;
 
 boolean setOnce = false;
-boolean CopyBG = false;
+//boolean CopyBG = false;
 boolean startDust = false;
 
 boolean OFF = false;
@@ -113,6 +113,7 @@ void setup() {
 
   stillFrame = createImage(screenWidth, screenHeight, ARGB);
   ourBackground = createImage(screenWidth, screenHeight, RGB);
+  ourBackground = loadImage("savedBackground.jpg"); 
 
   copyImgCV = createImage(screenWidth/8, screenHeight/8, ARGB);
 
@@ -148,10 +149,6 @@ void setup() {
 void draw() {
   background(255, 255, 255);
   timeEllapsed = millis();
-
-//  if (liveCam.available() == true) {
-//    liveCam.read();
-//  }
 
   if (liveCam.pixels.length <= 0 ) return;
 
@@ -194,7 +191,6 @@ void draw() {
 
   stillFrame.updatePixels();
   fluidSolver.update();
-
   faces = opencv.detect();
 
   for (int i = 0; i < faces.length; i++) {
@@ -208,9 +204,16 @@ void draw() {
     startDust =true; 
     if (bUseSerial)  myPort.write('1');
     radius = 60;
+    
+      stroke(255, 0, 0);
+      strokeWeight(3);
+      noFill();
+      
   } else {
     if (bUseSerial)  myPort.write('0');
     radius = 0;
+    
+      noStroke();      
   }
 
   PVector ploc = location;
@@ -264,9 +267,6 @@ void draw() {
     image(ourBackground, 0, 0);
     image(stillFrame, 0, 0);
     
-      stroke(255, 0, 0);
-      strokeWeight(3);
-      noFill();
       rect(PosFaceX-faceXOff, (PosFaceY-50)+faceYOff, WidthFace+faceWOff, HeightFace+faceHOff);
     
     if (startDust==true) particleSystem.updateAndDraw();
@@ -284,13 +284,13 @@ void keyPressed() {
     break;
 
   case 'b':
-    CopyBG = true;
+    //CopyBG = true;
     ourBackground.copy(liveCam, 0, 0, screenWidth, screenHeight, 0, 0, screenWidth, screenHeight);
     break;
-
-  case 't':
-    startDust ^= true;
-    break;
+    
+ case '1':
+   saveFrame("data/savedBackground.jpg");
+   break;
   }
   //println(frameRate);
 }
