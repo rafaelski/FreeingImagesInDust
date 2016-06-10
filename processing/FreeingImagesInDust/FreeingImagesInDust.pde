@@ -91,19 +91,28 @@ float growing = 1;
 
 
 float FanForcesX, FanForcesY;
-float[] Accel_x = {.1, -1, -20, 14, .1, 10, -1, 15};
-float[] Accel_y = {.1, -1, 10, -2, .1, 10, 1, 15};
+float[] Accel_x = {
+  .1, -1, -20, 14, .1, 10, -1, 15
+};
+float[] Accel_y = {
+  .1, -1, 10, -2, .1, 10, 1, 15
+};
 int timeEllapsed;
 
-int[] FanTimes = {10, 20, 30, 40, 50, 60, 70, 80};
+int[] FanTimes = {
+  10, 20, 30, 40, 50, 60, 70, 80
+};
 
+boolean bUseSerial = false;
 
 void setup() {
 
   size(screenWidth, screenHeight, P3D);    // use OPENGL rendering for bilinear filtering on texture
 
-  String portName = Serial.list()[2];
-  myPort = new Serial(this, portName, 9600);
+  if (bUseSerial) {
+    String portName = Serial.list()[2];
+    myPort = new Serial(this, portName, 9600);
+  }
 
   stillFrame = createImage(screenWidth, screenHeight, ARGB);
   ourBackground = createImage(screenWidth, screenHeight, RGB);
@@ -142,9 +151,9 @@ void setup() {
 void draw() {
   background(255, 255, 255);
 
-  if (liveCam.available() == true) {
-    liveCam.read();
-  }
+//  if (liveCam.available() == true) {
+//    liveCam.read();
+//  }
 
   timeEllapsed = millis();
 
@@ -221,11 +230,10 @@ void draw() {
 
   if (faces.length==1) { //If we have a face, trigger startDust and tells Arduino
     startDust =true; 
-    myPort.write('1');
+      if (bUseSerial) myPort.write('1');
     //println(faces.length);
-  }
-  else {
-    myPort.write('0');
+  } else {
+      if (bUseSerial) myPort.write('0');
     //println(faces.length);
   }
 
@@ -257,27 +265,35 @@ void draw() {
   }
 
 
-println("fans", FanForcesX);
+  println("fans", FanForcesX);
 
-if (startDust) addForce(mouseNormX, mouseNormY, 1, 1, FanForcesX, FanForcesY); //dx and dy means the velocity and direction
+  if (startDust) addForce(mouseNormX, mouseNormY, 1, 1, FanForcesX, FanForcesY); //dx and dy means the velocity and direction
 
-image(ourBackground, 0, 0);
-image(stillFrame, 0, 0);
 
-if (startDust==true) particleSystem.updateAndDraw();
+  if (faceXOff <= 160 && faces.length==1) {
+    faceXOff += .45 *growing;
+    faceYOff += .2 *growing;
+    faceWOff += .9 *growing;
+    faceHOff += .5 *growing;
+  } else if (faceYOff <= 300 && faces.length==1) {
+    faceXOff += .1 *growing;
+    faceYOff += .2 *growing;
+    faceWOff += .2 *growing;
+    faceHOff -= .05 *growing;
+  }
 
-if (faceXOff <= 160 && faces.length==1) {
-  faceXOff += .45 *growing;
-  faceYOff += .2 *growing;
-  faceWOff += .9 *growing;
-  faceHOff += .5 *growing;
-} 
-else if (faceYOff <= 300 && faces.length==1) {
-  faceXOff += .1 *growing;
-  faceYOff += .2 *growing;
-  faceWOff += .2 *growing;
-  faceHOff -= .05 *growing;
-}
+  // draw everything
+  pushMatrix();
+  scale(-1, 1);
+  translate(-screenWidth, 0);
+  image(ourBackground, 0, 0);
+  image(stillFrame, 0, 0);
+
+  if (startDust==true) particleSystem.updateAndDraw();
+
+  popMatrix();
+  
+  
 }
 
 
