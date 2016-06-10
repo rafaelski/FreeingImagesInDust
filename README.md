@@ -1,12 +1,13 @@
 # FreeingImagesInDust
-Project developed into Interactivos?16 Madrid/Spain
+Project developed into Interactivos?16 Madrid/Spain.
+Two weeks international workshop
 
 Collaborators
-WonJik ---
-Heather --
+Won Jik Yang (South Korea)
+Heather Brand (US)
 
 Tutors
-Cris Shugrue
+Cris Shugrue (US)
 
-Proponent
-Rafael Ski
+Promoter
+Rafael Ski (Brazil)
