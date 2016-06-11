@@ -109,12 +109,12 @@ class Particle {
 
     // fade out a bit (and kill if alpha == 0);
     if (startDust == false) { 
-      alpha *= 0.08;
+      alpha *= 0.38;
     } else {
       alpha *= 0.98;
     }
 
-    if (alpha < 0.02)  alpha = 0;
+    if (alpha < 0.01)  alpha = 0;
   }
 
 

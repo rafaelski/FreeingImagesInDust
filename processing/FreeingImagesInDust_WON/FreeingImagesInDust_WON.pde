@@ -91,18 +91,24 @@ float growing = .8;
 
 
 float FanForcesX, FanForcesY;
-float[] Accel_x = {.1, -1, -20, 14, .1, 10, -1, 15};
-float[] Accel_y = {.1, -1, 10, -2, .1, 10, 1, 15};
+float[] Accel_x = {  
+  .1, -1, -20, 14, .1, 10, -1, 15
+};
+float[] Accel_y = {  
+  .1, -1, 10, -2, .1, 10, 1, 15
+};
 int timeEllapsed;
 
-int[] FanTimes = {10, 20, 30, 40, 50, 60, 70, 80};
+int[] FanTimes = {  
+  10, 20, 30, 40, 50, 60, 70, 80
+};
 
 boolean bUseSerial = false;
 float totalAlive = 0;
 
 int radius = 60;
-float timeStartedFace = -1;
-float timeLastNoFace = 0;
+int timeStartedFace = 0;
+int timeLastNoFace = 0;
 float alphaFade = 255;
 
 void setup() {
@@ -149,6 +155,8 @@ void setup() {
 
   // create particle system
   particleSystem = new ParticleSystem();
+  
+  //frameRate (15);
 }
 
 
@@ -174,17 +182,15 @@ void draw() {
       stillFrame.pixels[i] = color(255, 255, 255, 255);
     }
     stillFrame.updatePixels();
-    alphaFade = 255;
-    timeStartedFace = 0;
-    timeLastNoFace = 0;
   }
+
 
   copyImgCV.copy(liveCam, 0, 0, screenWidth, screenHeight, 0, 0, screenWidth/8, screenHeight/8);
   opencv.loadImage(copyImgCV);
 
 
-  if (timeStartedFace>0 && (millis()-timeStartedFace)/1000.0 > 20 && totalAlive > 100) { 
-    if (alphaFade > 0) alphaFade -= 2;
+  if (timeStartedFace>0 && (millis()-timeStartedFace)/1000.0 > 15){ 
+    if(alphaFade > 0)alphaFade-=2;
   }
 
   for ( int i = 0; i < screenWidth*screenHeight; i++) {
@@ -192,14 +198,19 @@ void draw() {
 
     //color c3 = color (red(c2), green(c2), blue(c2), 255); //Simpler but slower method;
 
+
+
+
+
     if ( alpha(c) > 0 ) { 
 
+     
       color c2 = liveCam.pixels[i];
       float c3R = c2 >> 16 & 0xFF;
       float c3G = c2 >> 8 & 0xFF;
       float c3B = c2 & 0xFF;
       color c3 = color(c3R, c3G, c3B, alphaFade);
-
+      
       stillFrame.pixels[i] = c3;
     }
   }
@@ -247,15 +258,10 @@ void draw() {
     strokeWeight(3);
     noFill();
 
-    if (timeStartedFace == -1 || (timeStartedFace==0 && (millis()-timeLastNoFace)/1000.0 > 5)) { 
+    if (timeStartedFace==0 && (millis()-timeLastNoFace)/1000.0 > 5) { 
       timeStartedFace = millis();
       timeLastNoFace = 0;
       alphaFade = 255;
-      println("NEW FACE ");
-      faceXOff = 0;
-      faceYOff = 0;
-      faceWOff = 0;
-      faceHOff = 0;
     }
   } 
   else {
@@ -263,10 +269,8 @@ void draw() {
     radius = 0;
 
     noStroke(); 
+    timeStartedFace = 0;
     timeLastNoFace = millis();
-    if ((millis()-timeLastNoFace)/1000.0 > 5) {
-      timeStartedFace = 0;
-    }
   }
 
   PVector ploc = location;
@@ -294,7 +298,7 @@ void draw() {
     }
   }
 
-  if (startDust) {
+  if (startDust) { 
     addForce(mouseNormX, mouseNormY, FanForcesX, FanForcesY); //dx and dy means the velocity and direction
     addForce(mouseNormX, mouseNormY+.25, FanForcesX, FanForcesY); //dx and dy means the velocity and direction
   }
@@ -309,7 +313,6 @@ void draw() {
   //    faceWOff += .2 *growing;
   //    faceHOff -= .05 *growing;
   //  }
-
   if (faces.length>0 && (millis()-timeStartedFace)/1000.0 > 20) {
     // grow in y+height direction until reach the bottom
     if (faceHOff < height-250) {
@@ -317,6 +320,7 @@ void draw() {
     }
 
     if ( faceWOff < WidthFace*1.5) {
+
       faceWOff += .5 *growing;
       faceXOff = faceWOff*.5;
     }
@@ -325,31 +329,30 @@ void draw() {
   //  println(timeEllapsed); 
   //  println("fans", FanForcesX);
   totalAlive = 0;
-  //println ( "frameRate ", frameRate );
-  //println("timeStartedFace", timeStartedFace);
+  println ( "frameRate ", frameRate );
 
   // draw everything
   pushMatrix();  
-    scale(-1, 1);
-    translate(-screenWidth, 0);
-    image(ourBackground, 0, 0);
-    image(stillFrame, 0, 0);
-  
-    rect(PosFaceX-faceXOff, (PosFaceY-50)+faceYOff, WidthFace+faceWOff, HeightFace+faceHOff);
-    ellipse(location.x, location.y, 10, 10);
-    ellipse(location.x, ( mouseNormY+.25)*screenHeight, 10, 10);
-  
-    if (startDust==true) particleSystem.updateAndDraw();
+  scale(-1, 1);
+  translate(-screenWidth, 0);
+  image(ourBackground, 0, 0);
+  image(stillFrame, 0, 0);
+
+  rect(PosFaceX-faceXOff, (PosFaceY-50)+faceYOff, WidthFace+faceWOff, HeightFace+faceHOff);
+  ellipse(location.x, location.y, 10, 10);
+  ellipse(location.x, ( mouseNormY+.25)*screenHeight, 10, 10);
+
+
+  if (startDust==true) particleSystem.updateAndDraw();
   popMatrix();
 
-  //println("total alive "+ totalAlive);
-  println (alphaFade);
+  println("total alive "+ totalAlive);
 }
 
 
 void keyPressed() {
   switch(key) {
-  case 'r':
+  case 'r': 
     renderUsingVA ^= true; 
     println("renderUsingVA: " + renderUsingVA);
     break;
@@ -363,6 +366,7 @@ void keyPressed() {
     saveFrame("data/savedBackground.jpg");
     break;
   }
+  //println(frameRate);
 }
 
 
