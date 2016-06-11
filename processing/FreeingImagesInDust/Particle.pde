@@ -64,9 +64,9 @@ class Particle {
 
     // read fluid info and add to velocity
     int fluidIndex = fluidSolver.getIndexForNormalizedPosition(x * invWidth, y * invHeight);
-    //  vx = fluidSolver.u[fluidIndex] * width * mass * FLUID_FORCE + vx * MOMENTUM;
-    //  vy = fluidSolver.v[fluidIndex] * height * mass * FLUID_FORCE + vy * MOMENTUM;
-
+    
+    //vx = fluidSolver.u[fluidIndex] * screenWidth * mass * FLUID_FORCE + vx * MOMENTUM;
+    //vy = fluidSolver.v[fluidIndex] * screenHeight * mass * FLUID_FORCE + vy * MOMENTUM;
     vx = fluidSolver.u[fluidIndex] * screenWidth * mass * myForce + vx * MOMENTUM;
     vy = fluidSolver.v[fluidIndex] * screenHeight * mass * myForce + vy * MOMENTUM;
 
