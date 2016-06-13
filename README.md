@@ -12,7 +12,7 @@ Heather Brand (US)
 
 Tutors
 
-Cris Shugrue (US)
+Chris Sugrue (US)
 
 
 Promoter
