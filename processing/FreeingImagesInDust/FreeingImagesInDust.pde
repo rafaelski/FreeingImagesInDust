@@ -1,10 +1,11 @@
 /***********************************************************************
- 
- Demo of the MSAFluid library (www.memo.tv/msafluid_for_processing)
- Move mouse to add dye and forces to the fluid.
- Click mouse to turn off fluid rendering seeing only particles and their paths.
- Demonstrates feeding input into the fluid and reading data back (to update the particles).
- Also demonstrates using Vertex Arrays for particle rendering.
+Code based on MSAFluid library (www.memo.tv/msafluid_for_processing)
+
+Developed by:
+Rafael SKi - promoter
+Won Jik Yang - colaborator
+Chris Sugrue - Mentor
+
  
 /***********************************************************************
  
@@ -44,7 +45,7 @@ import java.awt.*;
 import javax.media.opengl.GL2;
 
 
-final float FLUID_WIDTH = 120;
+final float FLUID_WIDTH = 180;
 
 boolean bUseSerial = false;  // use or not the serial port to control the Arduino
 
