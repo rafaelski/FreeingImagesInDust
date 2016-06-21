@@ -1,11 +1,11 @@
 /***********************************************************************
-Code based on MSAFluid library (www.memo.tv/msafluid_for_processing)
-
-Developed by:
-Rafael SKi - promoter
-Won Jik Yang - colaborator
-Chris Sugrue - Mentor
-
+ Code based on MSAFluid library (www.memo.tv/msafluid_for_processing)
+ 
+ Developed by:
+ Rafael SKi - promoter
+ Won Jik Yang - colaborator
+ Chris Sugrue - Mentor
+ 
  
 /***********************************************************************
  
@@ -93,21 +93,20 @@ float growing = .8;
 
 
 float FanForcesX, FanForcesY;
-float[] Accel_x = { .1, -1, -20, 14, .1, 10, -1, 15};
-float[] Accel_y = { .1, -1, 10, -2, .1, -10, 1, 5};
+//float[] Accel_x = { .1, -1, -20, 14, .1, 10, -1, 15};
+//float[] Accel_y = { .1, -1, 10, -2, .1, -10, 1, 5};
 int timeEllapsed;
 
 //2.0
-//float[] Accel_x = {15, -15, -20, 14, .1, 10};
-//float[] Accel_y = {13, 13, 10, -2, .1, 10};
-//float [] FanProb = {0,0,0,0,0,0};
+float[] Accel_x = {.4, .7, 1, -1, -14, -.5, .1, -.2, .5, -.2, -.1, -03};
+float[] Accel_y = {.4, .7, 1, -1, -14, -.5, .1, -.2, .5, -.1, -.2, -.1};
+float [] FanProb = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 //int[] FanTimes = { 10, 20, 30, 35, 40, 50};
-int[] FanTimes = { 1, 5, 10, 15, 20, 25};
+int[] FanTimes = {1, 5, 10, 15, 20, 25};
 
-int[] FanOnPins = { 24, 26, 28, 30, 32, 34};
-int[] FanOffPins = { 24, 26, 28, 30, 32, 34};
-
+int[] FanOnPins = {24, 26, 28, 30, 32, 34, 24, 24, 24};
+int[] FanOffPins = {24, 26, 28, 30, 32, 34, 24, 24, 24};
 
 float totalAlive = 0;
 
@@ -124,6 +123,11 @@ int STATE_FADE_OUT = 3;
 int STATE_NOBODY_HERE = 4;
 int appState = 0;
 int restartTime;
+
+//focus of forces array 
+int w = 0;
+int z = 2;
+int k = 0;
 
 void setup() {
   //size(screenWidth, screenHeight, P3D);    // use OPENGL rendering for bilinear filtering on texture
@@ -175,13 +179,17 @@ void setup() {
     stillFrame.pixels[i] = color(255, 255, 255, 255);
   }
   stillFrame.updatePixels();
-  
+
   restartTime = millis();
 }
 
 
 void draw() {
-  println("appState: " + appState);
+   
+  //FanForcesX = 0;
+  //FanForcesY = 0;
+  
+  //println("appState: " + appState);
   background(255, 255, 255);
   timeEllapsed = millis();
 
@@ -204,13 +212,12 @@ void draw() {
     timeStartedFace = 0;
     timeLastNoFace = 0;
     turnOFF = true;
-     
+
     //for (int i=0; i < 5; i++) {
     if (bUseSerial == true && turnOFF == true) {
-      myPort.write(0);    
+      myPort.write(0);
     }
     //}
-    
   }
 
 
@@ -219,7 +226,7 @@ void draw() {
       stillFrame.pixels[i] = color(255, 255, 255, alphaFade);
     }
     stillFrame.updatePixels();
-     
+
     if (alphaFade < 255) alphaFade += 2;
     else { 
       appState = STATE_PARTICLES;
@@ -231,9 +238,11 @@ void draw() {
   }
 
   // fade out all image after 30 seconds
-  // and turn off all the fans  
+  // and reset the Fan forces
   if (timeStartedFace>0 && (millis()-timeStartedFace)/1000.0 > 30 && totalAlive > 100) { 
-    if (alphaFade > 0) alphaFade -= 2;   
+    if (alphaFade > 0) alphaFade -= 2;
+//    FanForcesX = Accel_x[0];
+//    FanForcesY = Accel_y[0]; 
   }
 
 
@@ -329,53 +338,71 @@ void draw() {
     }
   }
 
-
+  /*
   // doing some things w fans need to check it out
   // version 1.0
   for (int i=0; i < 5; i++) {
     int timeSinceRestart = millis() - restartTime;
     //if (timeEllapsed/1000 > FanTimes[i] && timeEllapsed/1000 < FanTimes[i+1]) {
-      if ((timeEllapsed-restartTime)/1000.0 > FanTimes[i] && (timeEllapsed-restartTime)/1000.0 < FanTimes[i+1]) {
-        FanForcesX = Accel_x[i];
-        FanForcesY = Accel_y[i];
-     
+    if ((timeEllapsed-restartTime)/1000.0 > FanTimes[i] && (timeEllapsed-restartTime)/1000.0 < FanTimes[i+1]) {
+      FanForcesX = Accel_x[i];
+      FanForcesY = Accel_y[i];
+
       if (timeEllapsed/1000 > FanTimes[5]) {
         timeEllapsed = 0;
-       // turnOFF = true;
+        // turnOFF = true;
       }  
-      
+
       if (bUseSerial == true && turnOFF == false) {
         myPort.write(FanOnPins[i]);  
         //println("Fan ", FanOnPins[i]);
       }
     }
   }
-  
   println("turnOff val " + turnOFF);
-  /*
-  //version 2.0 - Ewan
-   float pThresh = 50000, blend = 0.9;
-   // doing some things w fans need to check it out
-   for (int i=0; i < 5; i++) {
-   FanProb[i] = totalAlive/pThresh;
-   //println("Fan prob ", FanProb[i] );
-   
-   if(FanProb[i] > random(1.0)) {
-   FanForcesX += blend*FanForcesX + (1-blend)*Accel_x[i];
-   FanForcesY += blend*FanForcesY + (1-blend)*Accel_y[i];
-   
-   if (bUseSerial) {
-   myPort.write(FanOnPins[i]);  
-   println("Fan ", FanOnPins[i]);    
-   }
-   }
-   }
-   */
+  */
+  
+  
+  /********
+  //preciso na verdade trocar a zona de interesse do array 
+  //dependendo do tempo ou qtde de particulas, indo e voltando
+  ********/
+  
+  
+  //version 2.0 - by Ewan
+  float pThresh = 50000, blend = 0.9;
+  
+//  if (totalAlive < 20000) {k=0; println (k);}
+//  else if (totalAlive > 20001 && totalAlive < 40000) {k=3; println (k);}
+//  else if (totalAlive > 40001) { k=6; println (k);}
+  
+  if ((millis()-timeStartedFace)/1000.0 < 12) { k=0; println (k); }
+  else if ((millis()-timeStartedFace)/1000.0 > 12.1 && (millis()-timeStartedFace)/1000.0 < 25) { k=3; println (k); }
+  else if ((millis()-timeStartedFace)/1000.0 > 25.1 && (millis()-timeStartedFace)/1000.0 < 35) { k=6; println (k); }
+  else if ((millis()-timeStartedFace)/1000.0 > 35.1) { k=9; println (k); }
+  
+  
+  for (int i=w; i<z; i++) {
+    FanProb[i] = totalAlive/pThresh;
+    //println("Fan prob ", FanProb[i] );
+    
+    if (FanProb[i] > random(1.0)) {
+      FanForcesX += blend*FanForcesX + (1-blend)*Accel_x[i];
+      FanForcesY += blend*FanForcesY + (1-blend)*Accel_y[i];
+//    println("FanForcesX ", FanForcesX);
+//    println("FanForcesY ", FanForcesY);
+      
+      if (bUseSerial) {
+        myPort.write(FanOnPins[i]);  
+        println("Fan ", FanOnPins[i]);
+      }
+    }
+  }
 
   // update the particles and create new
   if (startDust) {
     addForce(mouseNormX, mouseNormY, FanForcesX, FanForcesY); //FanForcesX and FanForcesY means the velocity and direction
-    addForce(mouseNormX, mouseNormY+.25, FanForcesX, FanForcesY); //FanForcesX and FanForcesY means the velocity and direction
+    //addForce(mouseNormX, mouseNormY+.25, FanForcesX, FanForcesY); //FanForcesX and FanForcesY means the velocity and direction
   }
 
   // reset totalAlive before making the check of all particles
@@ -383,21 +410,25 @@ void draw() {
 
   // draw everything
   pushMatrix();  
-    image(ourBackground, 0, 0);
-    scale(-1, 1);
-    translate(-screenWidth, 0);
-    pushMatrix(); // use this for rotate the aspect ratio into vertical mode;
-      scale(1.3, 1.3);
-      translate(-220, 15);
+  image(ourBackground, 0, 0);
+  scale(-1, 1);
+  translate(-screenWidth, 0);
+//    pushMatrix(); // use this for rotate the aspect ratio into vertical mode;
+//      scale(1.3, 1.3);
+//      translate(-220, 15);
       image(stillFrame, 0, 0);
-        if (mousePressed) saveFrame("data/savedBackground.jpg");
-  //    noFill();
-  //    rect(PosFaceX-faceXOff, (PosFaceY-50)+faceYOff, WidthFace+faceWOff, HeightFace+faceHOff);
-  //    ellipse(location.x, location.y, 10, 10);
-  //    ellipse(location.x, ( mouseNormY+.25)*screenHeight, 10, 10);
+      if (mousePressed) saveFrame("data/savedBackground.jpg");
+      //    noFill();
+      //    rect(PosFaceX-faceXOff, (PosFaceY-50)+faceYOff, WidthFace+faceWOff, HeightFace+faceHOff);
+      //    ellipse(location.x, location.y, 10, 10);
+      //    ellipse(location.x, ( mouseNormY+.25)*screenHeight, 10, 10);
       if (startDust==true) particleSystem.updateAndDraw();
-    popMatrix();
+//    popMatrix();
   popMatrix();
+  
+  //reset the fan forces each loop, after drwaing them
+  FanForcesX = Accel_x[k];
+  FanForcesY = Accel_y[k]; 
 }
 
 
