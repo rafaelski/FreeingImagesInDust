@@ -1,11 +1,10 @@
 /***********************************************************************
-Code based on MSAFluid library (www.memo.tv/msafluid_for_processing)
-
-Developed by:
-Rafael SKi - promoter
-Won Jik Yang - colaborator
-Chris Sugrue - Mentor
-
+ 
+ Demo of the MSAFluid library (www.memo.tv/msafluid_for_processing)
+ Move mouse to add dye and forces to the fluid.
+ Click mouse to turn off fluid rendering seeing only particles and their paths.
+ Demonstrates feeding input into the fluid and reading data back (to update the particles).
+ Also demonstrates using Vertex Arrays for particle rendering.
  
 /***********************************************************************
  
@@ -45,9 +44,7 @@ import java.awt.*;
 import javax.media.opengl.GL2;
 
 
-final float FLUID_WIDTH = 180;
-
-boolean bUseSerial = false;  // use or not the serial port to control the Arduino
+final float FLUID_WIDTH = 120;
 
 float invWidth, invHeight;    // inverse of screen dimensions
 float aspectRatio, aspectRatio2;
@@ -109,6 +106,7 @@ int[] FanOnPins = { 24, 26, 28, 30, 32, 34};
 int[] FanOffPins = { 24, 26, 28, 30, 32, 34};
 
 
+boolean bUseSerial = true;
 float totalAlive = 0;
 
 int radius = 60;
@@ -127,7 +125,7 @@ int restartTime;
 
 void setup() {
   //size(screenWidth, screenHeight, P3D);    // use OPENGL rendering for bilinear filtering on texture
-  size(1152, 768, P3D);  // size of the camera
+  size(1152, 768, P3D);
 
   if (bUseSerial) {
     String portName = Serial.list()[2];
@@ -181,7 +179,7 @@ void setup() {
 
 
 void draw() {
-  println("appState: " + appState);
+
   background(255, 255, 255);
   timeEllapsed = millis();
 
@@ -207,7 +205,8 @@ void draw() {
      
     //for (int i=0; i < 5; i++) {
     if (bUseSerial == true && turnOFF == true) {
-      myPort.write(0);    
+      myPort.write(0); 
+      println("PORRAPORRAPORRA");      
     }
     //}
     
@@ -230,9 +229,9 @@ void draw() {
     //println("STATE_FADE_BACK_IN " + alphaFade);
   }
 
-  // fade out all image after 30 seconds
+  // fade out all image after 20 seconds
   // and turn off all the fans  
-  if (timeStartedFace>0 && (millis()-timeStartedFace)/1000.0 > 30 && totalAlive > 100) { 
+  if (timeStartedFace>0 && (millis()-timeStartedFace)/1000.0 > 25 && totalAlive > 100) { 
     if (alphaFade > 0) alphaFade -= 2;   
   }
 
@@ -383,20 +382,16 @@ void draw() {
 
   // draw everything
   pushMatrix();  
-    image(ourBackground, 0, 0);
     scale(-1, 1);
     translate(-screenWidth, 0);
-    pushMatrix(); // use this for rotate the aspect ratio into vertical mode;
-      scale(1.3, 1.3);
-      translate(-220, 15);
-      image(stillFrame, 0, 0);
-        if (mousePressed) saveFrame("data/savedBackground.jpg");
-  //    noFill();
-  //    rect(PosFaceX-faceXOff, (PosFaceY-50)+faceYOff, WidthFace+faceWOff, HeightFace+faceHOff);
-  //    ellipse(location.x, location.y, 10, 10);
-  //    ellipse(location.x, ( mouseNormY+.25)*screenHeight, 10, 10);
-      if (startDust==true) particleSystem.updateAndDraw();
-    popMatrix();
+    image(ourBackground, 0, 0);
+    image(stillFrame, 0, 0);
+    noFill();
+    rect(PosFaceX-faceXOff, (PosFaceY-50)+faceYOff, WidthFace+faceWOff, HeightFace+faceHOff);
+    ellipse(location.x, location.y, 10, 10);
+    ellipse(location.x, ( mouseNormY+.25)*screenHeight, 10, 10);
+  
+    if (startDust==true) particleSystem.updateAndDraw();
   popMatrix();
 }
 
@@ -414,8 +409,7 @@ void keyPressed() {
     break;
 
   case '1':
-    ourBackground.save("data/savedBackground.jpg");
-    //saveFrame("data/savedBackground.jpg");
+    saveFrame("data/savedBackground.jpg");
     break;
   }
 }
