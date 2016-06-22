@@ -47,13 +47,13 @@ import processing.serial.*;
 import msafluid.*;
 import java.awt.*;
 import javax.media.opengl.GL2;
-//import blobDetection.*;
+import blobDetection.*;
 
 
 final float FLUID_WIDTH = 140;
 
 float mtTime = 60; //mirror total time. total time of the experience, until desappear
-int pNum = 10;  //particles init per second. when using blobs
+int pNum = 25;  //particles init per second. when using blobs
 boolean bUseSerial = false;  // use or not the serial port to control the Arduino
 
 float invWidth, invHeight;    // inverse of screen dimensions
@@ -108,8 +108,8 @@ float blend = 0.0009;
 //float[] Accel_y = { .1, -1, 10, -2, .1, -10, 1, 5};
 
 //2.0
-float[] Accel_x = {.4, .7, .1, -1, -.3, -.3, .1, -.2, .3, -.2, -.1, -.1};
-float[] Accel_y = {.4, .7, .1, -1, -.5, -.3, .1, -.2, .3, -.1, -.2, -.3};
+float[] Accel_x = {.4, .7, .1, -1, -.3, -.3, .1, -.2, .3, -.02, -.01, -.01};
+float[] Accel_y = {.4, .7, .1, -1, -.5, -.3, .1, -.2, .3, -.001, -.02, -.003};
 float [] FanProb = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 //3.0 to blob
@@ -124,6 +124,7 @@ int[] FanOnPins = {24, 26, 28, 30, 32, 34, 24, 24, 24};
 int[] FanOffPins = {24, 26, 28, 30, 32, 34, 24, 24, 24};
 
 float totalAlive = 0;
+//float alpha;
 
 int radius = 45;
 float timeStartedFace = -1;
@@ -152,10 +153,11 @@ float mouseNormX, mouseNormY;
 PImage copyImgCV;
 
 //blob detection
-//BlobDetection theBlobDetection;
-//PImage imgBlob;
-//Blob b;
-//EdgeVertex eA, eB;
+BlobDetection theBlobDetection;
+PImage imgBlob;
+Blob b;
+EdgeVertex eA, eB;
+boolean useBlobs = false;
 
 
 void setup() {
@@ -175,10 +177,10 @@ void setup() {
 
 
   //blob
-//  imgBlob = createImage(screenWidth/10, screenHeight/10, ARGB);
-//  theBlobDetection = new BlobDetection(imgBlob.width, imgBlob.height);
-//  theBlobDetection.setPosDiscrimination(true);
-//  theBlobDetection.setThreshold(0.2f); // will detect bright areas whose luminosity > 0.2f;
+  imgBlob = createImage(screenWidth/10, screenHeight/10, ARGB);
+  theBlobDetection = new BlobDetection(imgBlob.width, imgBlob.height);
+  theBlobDetection.setPosDiscrimination(true);
+  theBlobDetection.setThreshold(0.2f); // will detect bright areas whose luminosity > 0.2f;
   
 
   liveCam = new Capture(this, screenWidth, screenHeight);
@@ -191,7 +193,7 @@ void setup() {
   opencv.loadCascade(OpenCV.CASCADE_FRONTALFACE);  
 
   location = new PVector(screenWidth/2, screenHeight/2);
-  //locationB = new PVector(screenWidth/2, screenHeight/2); //to blob
+  locationB = new PVector(screenWidth/2, screenHeight/2); //to blob
   noff = new PVector(random(1000), random(1000));
 
   FanForcesX = Accel_x[0];
@@ -218,16 +220,11 @@ void setup() {
     stillFrame.pixels[i] = color(255, 255, 255, 255);
   }
   stillFrame.updatePixels();
-
-  restartTime = millis();
+  //restartTime = millis();
 }
 
 
 void draw() {
-
-  //FanForcesX = 0;
-  //FanForcesY = 0;
-
   //println("appState: " + appState);
   background(255, 255, 255);
   //timeEllapsed = millis();
@@ -245,20 +242,22 @@ void draw() {
 
 
   // update fading in and out states
-  //and reseting everything
+  // and reseting everything
   if (appState == STATE_FADE_OUT) {
     if (totalAlive == 0) {
+      //alpha = 0;
       startDust = false;
       appState = STATE_FADE_BACK_IN;
       timeStartedFace = 0;
       timeLastNoFace = 0;      
-        faceXOff = 0;
-        faceYOff = 0;
-        faceWOff = 0;
-        faceHOff = 0;     
-        FanForcesX = Accel_x[0];
-        FanForcesY = Accel_y[0];  
-        for (int j=0; j<11; j++) {  FanProb[j] = 0;  }
+      faceXOff = 0;
+      faceYOff = 0;
+      faceWOff = 0;
+      faceHOff = 0;     
+      FanForcesX = Accel_x[0];
+      FanForcesY = Accel_y[0];  
+      for (int j=0; j<11; j++) {  FanProb[j] = 0;  }
+      useBlobs = false;  // to blob
       turnOFF = true;
       println ("timeStartedFace reseting ", timeStartedFace);
 
@@ -284,12 +283,10 @@ void draw() {
       timeStartedFace = millis();  //get this value and goes out from this loop;
       //restartTime = millis();
     }
-    //println("STATE_FADE_BACK_IN " + alphaFade);
   }
-
-  // fade out all image after mtTime - 5.0 seconds
-  // and reset the Fan forces
-  if (timeStartedFace>0 && (millis()-timeStartedFace)/1000.0 > mtTime *.80 && totalAlive > 100) { 
+    
+  // fade out all image after 80% of mtTime
+  if (timeStartedFace>0 && (millis()-timeStartedFace)/1000.0 > mtTime *.80 && totalAlive > 100) {
     if (alphaFade > 0) alphaFade -= 2;
     if (alphaFade < 10) appState = STATE_FADE_OUT;
   }
@@ -319,9 +316,9 @@ void draw() {
   faces = opencv.detect();
 
   //...and/or blob detection
-//  imgBlob.copy(liveCam, 0, 0, screenWidth, screenHeight, 0, 0, screenWidth/10, screenHeight/10);
-//  fastblur(imgBlob, 2);
-//  theBlobDetection.computeBlobs(imgBlob.pixels);
+  imgBlob.copy(liveCam, 0, 0, screenWidth, screenHeight, 0, 0, screenWidth/10, screenHeight/10);
+  fastblur(imgBlob, 2);
+  theBlobDetection.computeBlobs(imgBlob.pixels);
 
 
   // find closest face to center and get its parameters
@@ -344,12 +341,12 @@ void draw() {
   if (faces.length > 0) { //If we have a face, trigger startDust and tells Arduino
     if (appState == STATE_PARTICLES) {
       // wait 5.0 seconds to start the dust effect
-      if ( (millis()-timeStartedFace)/1000.0 > 10 ) {
+      if ( (millis()-timeStartedFace)/1000.0 > 7 ) {
         startDust = true;
         println("ROLOU ");
         //if (bUseSerial)  myPort.write('1');
         radius = 45;
-        //pNum = 100;  //to blob
+        pNum = 25;  //to blob
       }
 
       // check if this is a new face (no faces for more than 5 seconds or the first time ever)
@@ -370,7 +367,7 @@ void draw() {
     //if (bUseSerial)  myPort.write('0');
 
     radius = 0;
-    //pNum = 0; //to blob
+    pNum = 0; //to blob
 
     // record the time we have no faces
     timeLastNoFace = millis();
@@ -383,47 +380,21 @@ void draw() {
   }
 
   // update the perlin noise animator
-    location.x = PosFaceX-faceXOff + map(noise(noff.x), 0, 1, 0, WidthFace+faceWOff);
-    location.y = (PosFaceY-140)+faceYOff + map(noise(noff.y), 0, 1, 0, HeightFace+faceHOff);
+//    location.x = PosFaceX-faceXOff + map(noise(noff.x), 0, 1, 0, WidthFace+faceWOff);
+//    location.y = (PosFaceY-140)+faceYOff + map(noise(noff.y), 0, 1, 0, HeightFace+faceHOff);
+    location.x = (PosFaceX-faceXOff + map(noise(noff.x), 0, 1, 0, WidthFace+faceWOff)) *invWidth;
+    location.y = ((PosFaceY-140)+faceYOff + map(noise(noff.y), 0, 1, 0, HeightFace+faceHOff)) *invHeight;
     noff.add(0.2, 0.2, 0);
     
-    mouseNormX = location.x * invWidth;
-    mouseNormY = location.y * invHeight;
+//    mouseNormX = location.x * invWidth;
+//    mouseNormY = location.y * invHeight;
 
 
-  //using blob edges  
-//  for (int n=0 ; n<theBlobDetection.getBlobNb() ; n++)
-//  {
-//    b=theBlobDetection.getBlob(n);
-//    for (int m=0; m<b.getEdgeNb(); m++)
-//    {
-//      eA = b.getEdgeVertexA(m);
-//      eB = b.getEdgeVertexB(m);
-//      if (eA !=null && eB !=null)
-//      {
-////        strokeWeight(3);
-////        stroke(0, 255, 0);
-////        line(eA.x*screenWidth, eA.y*screenHeight, eB.x*screenWidth, eB.y*screenHeight); 
-//
-//        location.x = eA.x*screenWidth;
-//        location.y = eA.y*screenHeight;
-//        mouseNormX = location.x * invWidth;
-//        mouseNormY = location.y * invHeight;
-//
-//        locationB.x = eB.x*screenWidth;
-//        locationB.y = eB.y*screenHeight;        
-//        float lBx = locationB.x * invWidth;
-//        float lBy = locationB.y * invHeight;
-//
-//        if (startDust)  addForce(mouseNormX, mouseNormY, FanForcesX, FanForcesY);
-//        //if (startDust)  addForce(mouseNormX, mouseNormY, lBx, lBy);
-//      }
-//    }
-//  }
 
-
-  // adjust the area of the face tracking so perlin mover has larger area over time
-  if (faces.length>0 && (millis()-timeStartedFace)/1000.0 > mtTime *.50) {
+  // after 50% of time, adjust the area of the face tracking so perlin mover has larger area over time
+  // and starts using blobs
+  if (faces.length>0 && (millis()-timeStartedFace)/1000.0 > mtTime *.50) {    
+    useBlobs = true; // to blob
     // grow in y+height direction until reach the bottom
     if (faceHOff < height-250) {
       faceHOff += 2 *growing;
@@ -434,6 +405,13 @@ void draw() {
     }
   }
 
+  
+  //stop using blobs after the 74% mark
+  if (timeStartedFace>0 && (millis()-timeStartedFace)/1000.0 > mtTime *.74 && totalAlive > 100) {
+    useBlobs = false;  // to blob
+  }
+  
+  
   /*
   // doing some things w fans need to check it out
    // version 1.0
@@ -467,31 +445,19 @@ void draw() {
   //  else if (totalAlive > 20001 && totalAlive < 40000) {k=3; println (k);}
   //  else if (totalAlive > 40001) { k=6; println (k);}
 
-  if (appState == STATE_PARTICLES) {
-    if ((millis()-timeStartedFace)/1000.0 < mtTime *.25) { 
-      k=0; 
-      println (k);
-    }
-    else if ((millis()-timeStartedFace)/1000.0 > mtTime *.25 && (millis()-timeStartedFace)/1000.0 < mtTime *.50) { 
-      k=3; 
-      println (k);
-    }
-    else if ((millis()-timeStartedFace)/1000.0 > mtTime *.50 && (millis()-timeStartedFace)/1000.0 < mtTime *.75) { 
-      k=6; 
-      println (k);
-    }
-    else if ((millis()-timeStartedFace)/1000.0 > mtTime *.75) { 
-      k=9; 
-      println (k);
-    }
-  }
+  //if (appState == STATE_PARTICLES) {
+    if ((millis()-timeStartedFace)/1000.0 < mtTime *.25) {  k=0;  println (k);  }
+    else if ((millis()-timeStartedFace)/1000.0 > mtTime *.25 && (millis()-timeStartedFace)/1000.0 < mtTime *.50) {  k=3;  println (k);  }
+    else if ((millis()-timeStartedFace)/1000.0 > mtTime *.50 && (millis()-timeStartedFace)/1000.0 < mtTime *.75) {  k=6;  println (k);  }
+    else if ((millis()-timeStartedFace)/1000.0 > mtTime *.75) { k=9;  println (k); }
+  //}
 
   // - by Ewan
-  float pThresh = 100000;
+  float pThresh = 150000;
   
   for (int i=w; i<z; i++) {
     FanProb[i] = totalAlive/pThresh;
-    //println("Fan prob ", FanProb[i] );
+    println("Fan prob ", FanProb[i] );
 
     if (FanProb[i] > random(1.0) && random(20) > 19) {
       FanForcesX += blend*FanForcesX + (1-blend)*Accel_x[i];
@@ -506,11 +472,39 @@ void draw() {
     }
   }
   println("Total Alive: ", totalAlive);
+   
+  
+  //using blob edges  
+  for (int n=0 ; n<theBlobDetection.getBlobNb() ; n++)
+  {
+    b=theBlobDetection.getBlob(n);
+    for (int m=0; m<b.getEdgeNb(); m++)
+    {
+      eA = b.getEdgeVertexA(m);
+      eB = b.getEdgeVertexB(m);
+      if (eA !=null && eB !=null)
+      {
+//        strokeWeight(3);
+//        stroke(0, 255, 0);
+//        line(eA.x*screenWidth, eA.y*screenHeight, eB.x*screenWidth, eB.y*screenHeight); 
 
+        locationB.x = eA.x *screenWidth *invWidth;
+        locationB.y = eA.y *screenHeight *invHeight;
+
+//        locationB.x = eB.x *screenWidth *invWidth;
+//        locationB.y = eB.y *screenHeight *invHeight;   
+        
+        if (startDust && useBlobs)  addForceBlobs(locationB.x, locationB.y, FanForcesX/10, FanForcesY/10);
+      }
+    }
+  }
+  
+  
   // update the particles and create new
   if (startDust) {
-    addForce(mouseNormX, mouseNormY, FanForcesX, FanForcesY); //FanForcesX and FanForcesY means the velocity and direction
-    addForce(mouseNormX, mouseNormY+.15, FanForcesX, FanForcesY); //FanForcesX and FanForcesY means the velocity and direction
+    addForce(location.x, location.y, FanForcesX, FanForcesY); //FanForcesX and FanForcesY means the velocity and direction
+    //addForce(mouseNormX, mouseNormY, FanForcesX, FanForcesY); //FanForcesX and FanForcesY means the velocity and direction
+    //addForce(mouseNormX, mouseNormY+.15, FanForcesX, FanForcesY); //FanForcesX and FanForcesY means the velocity and direction
   }
 
   // reset totalAlive before making the check of all particles
@@ -565,31 +559,41 @@ void keyPressed() {
 
 // add force and dye to fluid, and create particles
 void addForce(float x, float y, float _FanForcesX, float _FanForcesY) {
-  //to blob
-  //float speed = (_FanForcesX * _FanForcesX  + _FanForcesY * _FanForcesY * aspectRatio2) /10;    // balance the x and y components of speed with the screen aspect ratio
-  float speed = _FanForcesX * _FanForcesX  + _FanForcesY * _FanForcesY * aspectRatio2;    // balance the x and y components of speed with the screen aspect ratio
+//  float speed = _FanForcesX * _FanForcesX  + _FanForcesY * _FanForcesY * aspectRatio2;    // balance the x and y components of speed with the screen aspect ratio
+//  if (speed > 0) {
+//    if (x<0) x = 0; 
+//    else if (x>1) x = 1;
+//    if (y<0) y = 0; 
+//    else if (y>1) y = 1;
+//  }
 
-  if (speed > 0) {
-    if (x<0) x = 0; 
-    else if (x>1) x = 1;
-    if (y<0) y = 0; 
-    else if (y>1) y = 1;
+  float velocityMult = 3.0f;
 
-    float velocityMult = 3.0f;
-    //float velocityMult = .3f; //to blob
+  int index = fluidSolver.getIndexForNormalizedPosition(x, y);
 
-    int index = fluidSolver.getIndexForNormalizedPosition(x, y);
+  particleSystem.addParticles(x *screenWidth, y *screenHeight);
 
-    //particleSystem.addParticles(x * screenWidth, y * screenHeight);
-    particleSystem.addParticles(x * screenWidth, y * screenHeight, pNum);
+  //_FanForcesX = (mouseX)/ ( width /5);  // _FanForcesX and dy means the velocity and direction
+  //_FanForcesY = -((mouseY)/ ( height /5));  // _FanForcesY and dy means the velocity and direction
 
-    //_FanForcesX = (mouseX)/ ( width /5);  // _FanForcesX and dy means the velocity and direction
-    //_FanForcesY = -((mouseY)/ ( height /5));  // _FanForcesY and dy means the velocity and direction
-
-    fluidSolver.uOld[index] += _FanForcesX * velocityMult;
-    fluidSolver.vOld[index] += _FanForcesY * velocityMult;
-  }
+  fluidSolver.uOld[index] += _FanForcesX * velocityMult;
+  fluidSolver.vOld[index] += _FanForcesY * velocityMult;
+  
 }
+
+
+// add force to Blobs
+void addForceBlobs(float x, float y, float _FanForcesX, float _FanForcesY) {
+
+  float velocityMult = 1.3f;
+  int index = fluidSolver.getIndexForNormalizedPosition(x, y);
+
+  particleSystem.addParticlesBlobs(x *screenWidth, y *screenHeight, pNum);
+
+  fluidSolver.uOld[index] += _FanForcesX * velocityMult;
+  fluidSolver.vOld[index] += _FanForcesY * velocityMult;
+}
+
 
 void captureEvent(Capture c) {
   c.read();

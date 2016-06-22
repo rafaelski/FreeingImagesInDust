@@ -50,7 +50,7 @@ class ParticleSystem {
   FloatBuffer posArray;
   FloatBuffer colArray;
 
-  final static int maxParticles = 100000;
+  final static int maxParticles = 150000;
   int curIndex;
 
   Particle[] particles;
@@ -110,9 +110,8 @@ class ParticleSystem {
   }
 
 
-  //void addParticles(float x, float y) {
-  void addParticles(float x, float y, int count ) {
-
+  // add particles to face position
+  void addParticles(float x, float y) {   
     float r = radius;
     float r2 = r*r;
 
@@ -126,12 +125,30 @@ class ParticleSystem {
         }
       }
     }
-
-//    for(int i=0; i<count; i++) {
-//      if (random(50) > 49) addParticle(x + random(-50, 50), y + random(-50, 50));
-//    }
-
   }
+
+  // add particles to blobs
+  void addParticlesBlobs(float x, float y, int count) {  
+    float r = radius;
+    float r2 = r*r;
+
+    for (float i = x-r; i < x+r; i++) {
+      for (float j = y-r; j < y+r; j++) {  
+
+        float sqD = ((i-x)*(i-x))+((j-y)*(j-y)); //Square distance from center (x, y) and the square (i, j)
+
+        if ( sqD < r2 && random(1000) > 999 ) {   //drawing a circle with the "r" radius inside the square (i, j). Chances of 19 in 20 to appear;
+          addParticle(i, j);
+        }
+      }
+    }
+    
+//    for (int i=0; i<count; i++) {
+//      if (random(20) > 19) addParticle(x + random(-50, 50), y + random(-50, 50));
+//    }
+  }
+
+
 
 
   void addParticle(float x, float y) {
@@ -140,24 +157,25 @@ class ParticleSystem {
     if ( y >= screenHeight) y = screenHeight-1;
     if (x < 0 ) x = 0;
     if ( y < 0 ) y = 0;
-    
+
     int pixIndex = int(x) + int(y)*screenWidth;
 
     color c = stillFrame.pixels[pixIndex];  //Pick the color of the pixels at the mouse position;
-    
+
     if ( alpha(c) > 0 ) {
-      stillFrame.pixels[pixIndex] = color(0,0,0, 0);   //Turn the Image Pixels into Alpha 0;
-      
+      stillFrame.pixels[pixIndex] = color(0, 0, 0, 0);   //Turn the Image Pixels into Alpha 0;
+
       float currR = c >> 16 & 0xFF;
       float currG = c >> 8 & 0xFF;
       float currB = c & 0xFF;
-      
+
       particles[curIndex].init(x, y, currR/255.0, currG/255.0, currB/255.0);  //Colorize the particles in (x, y) mouse position with the colors of the image;
-//    particles[curIndex].init(x, y, red(c), green(c), blue(c));  //Simpler but slower method;
-   
+      //    particles[curIndex].init(x, y, red(c), green(c), blue(c));  //Simpler but slower method;
+
       curIndex++;
-     // if (OFF == true) curIndex = 0;
+      // if (OFF == true) curIndex = 0;
       if (curIndex >= maxParticles) curIndex = 0;
     }
   }
 }
+
