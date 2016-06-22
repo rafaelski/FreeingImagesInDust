@@ -34,23 +34,23 @@ import com.sun.opengl.util.*;
 
 boolean renderUsingVA = false;
 
-void fadeToColor(GL2 gl, float r, float g, float b, float speed) {
-  gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA);
-  gl.glColor4f(r, g, b, speed);
-  gl.glBegin(gl.GL_QUADS);
-  gl.glVertex2f(0, 0);
-  gl.glVertex2f(screenWidth, 0);
-  gl.glVertex2f(screenWidth, screenHeight);
-  gl.glVertex2f(0, screenHeight);
-  gl.glEnd();
-}
+//void fadeToColor(GL2 gl, float r, float g, float b, float speed) {
+//  gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA);
+//  gl.glColor4f(r, g, b, speed);
+//  gl.glBegin(gl.GL_QUADS);
+//  gl.glVertex2f(0, 0);
+//  gl.glVertex2f(screenWidth, 0);
+//  gl.glVertex2f(screenWidth, screenHeight);
+//  gl.glVertex2f(0, screenHeight);
+//  gl.glEnd();
+//}
 
 
 class ParticleSystem {
   FloatBuffer posArray;
   FloatBuffer colArray;
 
-  final static int maxParticles = 150000;
+  final static int maxParticles = 100000;
   int curIndex;
 
   Particle[] particles;
@@ -72,7 +72,7 @@ class ParticleSystem {
     GL2 gl = ((PJOGL)pgl).gl.getGL2();       // processings opengl graphics object               
 
     gl.glEnable( GL2.GL_BLEND );             // enable blending
-    if (!drawFluid) fadeToColor(gl, 0, 0, 0, 0.05);
+    //if (!drawFluid) fadeToColor(gl, 0, 0, 0, 0.05);
 
     // gl.glBlendFunc(GL2.GL_ONE, GL2.GL_ONE);  // additive blending (ignore alpha)
     gl.glEnable(GL2.GL_LINE_SMOOTH);        // make points round
@@ -110,7 +110,8 @@ class ParticleSystem {
   }
 
 
-  void addParticles(float x, float y) {//, int count ) {
+  //void addParticles(float x, float y) {
+  void addParticles(float x, float y, int count ) {
 
     float r = radius;
     float r2 = r*r;
@@ -120,13 +121,15 @@ class ParticleSystem {
 
         float sqD = ((i-x)*(i-x))+((j-y)*(j-y)); //Square distance from center (x, y) and the square (i, j)
 
-        if ( sqD < r2 && random(20) > 19 ) {   //drawing a circle with the "r" radius inside the square (i, j). Chances of 19 in 20 to appear;
+        if ( sqD < r2 && random(50) > 49 ) {   //drawing a circle with the "r" radius inside the square (i, j). Chances of 19 in 20 to appear;
           addParticle(i, j);
         }
       }
     }
 
-    //for(int i=0; i<count; i++) addParticle(x + random(-50, 50), y + random(-50, 50));
+//    for(int i=0; i<count; i++) {
+//      if (random(50) > 49) addParticle(x + random(-50, 50), y + random(-50, 50));
+//    }
 
   }
 
@@ -150,7 +153,7 @@ class ParticleSystem {
       float currB = c & 0xFF;
       
       particles[curIndex].init(x, y, currR/255.0, currG/255.0, currB/255.0);  //Colorize the particles in (x, y) mouse position with the colors of the image;
-//   particles[curIndex].init(x, y, red(c), green(c), blue(c));  //Simpler but slower method;
+//    particles[curIndex].init(x, y, red(c), green(c), blue(c));  //Simpler but slower method;
    
       curIndex++;
      // if (OFF == true) curIndex = 0;

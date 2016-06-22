@@ -39,7 +39,6 @@ class Particle {
   float mass;
   float [] colors = new float[3];
   float myForce = .016;
-  float wind;  // to match with the drection of the fans
 
 
   void init(float x, float y, float currR, float currG, float currB) {//, boolean OFF) {
@@ -53,18 +52,17 @@ class Particle {
     colors[0] = currR;
     colors[1] = currG;
     colors[2] = currB;
-    wind = -2;
   }
 
 
   void update() {
     // only update if particle is visible
     if (alpha == 0) return;
-      else totalAlive++;
+    else totalAlive++;
 
     // read fluid info and add to velocity
     int fluidIndex = fluidSolver.getIndexForNormalizedPosition(x * invWidth, y * invHeight);
-    
+
     //vx = fluidSolver.u[fluidIndex] * screenWidth * mass * FLUID_FORCE + vx * MOMENTUM;
     //vy = fluidSolver.v[fluidIndex] * screenHeight * mass * FLUID_FORCE + vy * MOMENTUM;
     vx = fluidSolver.u[fluidIndex] * screenWidth * mass * myForce + vx * MOMENTUM;
@@ -74,9 +72,6 @@ class Particle {
 
     // simple gravity
     //vy+= -.4;
-
-    // wind
-    //vx+= wind;
 
     // update position
     x += vx;
@@ -110,7 +105,8 @@ class Particle {
     // fade out a bit (and kill if alpha == 0);
     if (startDust == false) { 
       alpha *= 0.08;
-    } else {
+    } 
+    else {
       alpha *= 0.98;
     }
 
@@ -144,7 +140,6 @@ class Particle {
     gl.glVertex2f(x, y);
   }
 }
-
 
 
 
