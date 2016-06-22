@@ -1,3 +1,4 @@
+/*
 
 // ==================================================
 // drawBlobsAndEdges()
@@ -132,3 +133,5 @@ void fastblur(PImage img,int radius)
     }
   }
 }
+
+*/

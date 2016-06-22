@@ -121,7 +121,7 @@ class ParticleSystem {
 
         float sqD = ((i-x)*(i-x))+((j-y)*(j-y)); //Square distance from center (x, y) and the square (i, j)
 
-        if ( sqD < r2 && random(50) > 49 ) {   //drawing a circle with the "r" radius inside the square (i, j). Chances of 19 in 20 to appear;
+        if ( sqD < r2 && random(10) > 9 ) {   //drawing a circle with the "r" radius inside the square (i, j). Chances of 19 in 20 to appear;
           addParticle(i, j);
         }
       }
