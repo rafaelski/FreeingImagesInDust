@@ -38,7 +38,7 @@ class Particle {
   float alpha;
   float mass;
   float [] colors = new float[3];
-  float myForce = .016;
+  float myForce = .016; // THIS MUST BE RESETED!!!!!!! WTF WTF WTF HAHAHAHAHAHHA
 
 
   void init(float x, float y, float currR, float currG, float currB) {//, boolean OFF) {
@@ -47,7 +47,6 @@ class Particle {
     vx = 0;
     vy = 0;
     alpha  = random(0.3, 1);
-
     mass = random(0.5, 1);
     colors[0] = currR;
     colors[1] = currG;
@@ -56,19 +55,18 @@ class Particle {
 
 
   void update() {
-    // only update if particle is visible
+    // only update if particle is visible    
     if (alpha == 0) return;
     else totalAlive++;
 
     // read fluid info and add to velocity
-    int fluidIndex = fluidSolver.getIndexForNormalizedPosition(x * invWidth, y * invHeight);
-
+    int fluidIndex = fluidSolver.getIndexForNormalizedPosition(x *invWidth, y *invHeight);
     //vx = fluidSolver.u[fluidIndex] * screenWidth * mass * FLUID_FORCE + vx * MOMENTUM;
     //vy = fluidSolver.v[fluidIndex] * screenHeight * mass * FLUID_FORCE + vy * MOMENTUM;
     vx = fluidSolver.u[fluidIndex] * screenWidth * mass * myForce + vx * MOMENTUM;
     vy = fluidSolver.v[fluidIndex] * screenHeight * mass * myForce + vy * MOMENTUM;
 
-    if (myForce < FLUID_FORCE) myForce += .005;
+    if (myForce < FLUID_FORCE) myForce += .005; // Oh My God!! THIS MUST BE RESETED!!!!!!! WTF WTF WTF HAHAHAHAHAHHA
 
     // simple gravity
     //vy+= -.4;
@@ -102,15 +100,23 @@ class Particle {
       vy = random(-1, 1);
     }
 
-    // fade out a bit (and kill if alpha == 0);
-    if (startDust == false) { 
-      alpha *= 0.08;
-    } 
-    else {
-      alpha *= 0.98;
-    }
+    //    if (startDust == false) { 
+    //      alpha *= 0.08;
+    //      fluidSolver.reset();
+    //      x=0;
+    //      y=0;
+    //      println("reseta a porra");
+    //    } 
+    //    else {
+    alpha *= 0.98;
+    //    }
 
-    if (alpha < 0.02)  alpha = 0;
+    // fade out a bit (and kill if alpha == 0);
+    // and reset the velocity
+    if (alpha < 0.02) {
+      alpha = 0;
+      myForce = .016;
+    }
   }
 
 
@@ -140,7 +146,6 @@ class Particle {
     gl.glVertex2f(x, y);
   }
 }
-
 
 
 

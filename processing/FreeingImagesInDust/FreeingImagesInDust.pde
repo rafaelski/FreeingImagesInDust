@@ -52,7 +52,7 @@ import blobDetection.*;
 
 final float FLUID_WIDTH = 140;
 
-float mtTime = 60; //mirror total time. total time of the experience, until desappear
+float mtTime = 30; //mirror total time. total time of the experience, until desappear
 int pNum = 25;  //particles init per second. when using blobs
 boolean bUseSerial = false;  // use or not the serial port to control the Arduino
 
@@ -109,7 +109,7 @@ float blend = 0.0009;
 
 //2.0
 float[] Accel_x = {.4, .7, .1, -1, -.3, -.3, .1, -.2, .3, -.02, -.01, -.01};
-float[] Accel_y = {.4, .7, .1, -1, -.5, -.3, .1, -.2, .3, -.001, -.02, -.003};
+float[] Accel_y = {.4, .7, .1, -1, -.5, -.3, .1, -.2, .3, -.001, -.02, -.03};
 float [] FanProb = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 //3.0 to blob
@@ -197,7 +197,7 @@ void setup() {
   noff = new PVector(random(1000), random(1000));
 
   FanForcesX = Accel_x[0];
-  FanForcesY = Accel_y[0];
+  FanForcesY = Accel_y[0]; 
 
   invWidth = 1.0f/screenWidth;
   invHeight = 1.0f/screenHeight;
@@ -220,7 +220,7 @@ void setup() {
     stillFrame.pixels[i] = color(255, 255, 255, 255);
   }
   stillFrame.updatePixels();
-  //restartTime = millis();
+  restartTime = millis();
 }
 
 
@@ -239,13 +239,12 @@ void draw() {
 
   // update fluid solver
   fluidSolver.update();
-
+  
 
   // update fading in and out states
   // and reseting everything
   if (appState == STATE_FADE_OUT) {
     if (totalAlive == 0) {
-      //alpha = 0;
       startDust = false;
       appState = STATE_FADE_BACK_IN;
       timeStartedFace = 0;
@@ -255,10 +254,14 @@ void draw() {
       faceWOff = 0;
       faceHOff = 0;     
       FanForcesX = Accel_x[0];
-      FanForcesY = Accel_y[0];  
-      for (int j=0; j<11; j++) {  FanProb[j] = 0;  }
+      FanForcesY = Accel_y[0]; 
+//      FanForcesX = 0.3;
+//      FanForcesY = 0.3;
       useBlobs = false;  // to blob
       turnOFF = true;
+      // reset the pvector noise
+//      noff.set(random(1000), random(1000));
+      
       println ("timeStartedFace reseting ", timeStartedFace);
 
       //for (int i=0; i < 5; i++) {
@@ -281,7 +284,7 @@ void draw() {
       appState = STATE_PARTICLES;
       turnOFF = false;
       timeStartedFace = millis();  //get this value and goes out from this loop;
-      //restartTime = millis();
+      restartTime = millis();
     }
   }
     
@@ -341,9 +344,9 @@ void draw() {
   if (faces.length > 0) { //If we have a face, trigger startDust and tells Arduino
     if (appState == STATE_PARTICLES) {
       // wait 5.0 seconds to start the dust effect
-      if ( (millis()-timeStartedFace)/1000.0 > 7 ) {
+      if ( (millis()-timeStartedFace)/1000.0 > 2 ) {
         startDust = true;
-        println("ROLOU ");
+        //println("ROLOU ");
         //if (bUseSerial)  myPort.write('1');
         radius = 45;
         pNum = 25;  //to blob
@@ -393,7 +396,7 @@ void draw() {
 
   // after 50% of time, adjust the area of the face tracking so perlin mover has larger area over time
   // and starts using blobs
-  if (faces.length>0 && (millis()-timeStartedFace)/1000.0 > mtTime *.50) {    
+  if (faces.length>0 && (millis()-timeStartedFace)/1000.0 > mtTime *.50) {   
     useBlobs = true; // to blob
     // grow in y+height direction until reach the bottom
     if (faceHOff < height-250) {
@@ -403,6 +406,12 @@ void draw() {
       faceWOff += .6 *growing;
       faceXOff = faceWOff*.6;
     }
+  } // if no face or at beginnig of time, reset the tracking face position
+  else {
+    faceXOff = 0;
+    faceYOff = 0;
+    faceWOff = 0;
+    faceHOff = 0;
   }
 
   
@@ -412,27 +421,27 @@ void draw() {
   }
   
   
-  /*
+  
   // doing some things w fans need to check it out
-   // version 1.0
-   for (int i=0; i < 5; i++) {
-   int timeSinceRestart = millis() - restartTime;
-   //if (timeEllapsed/1000 > FanTimes[i] && timeEllapsed/1000 < FanTimes[i+1]) {
-   if ((timeEllapsed-restartTime)/1000.0 > FanTimes[i] && (timeEllapsed-restartTime)/1000.0 < FanTimes[i+1]) {
-   FanForcesX = Accel_x[i];
-   FanForcesY = Accel_y[i];
-   if (timeEllapsed/1000 > FanTimes[5]) {
-   timeEllapsed = 0;
-   // turnOFF = true;
-   }  
-   if (bUseSerial == true && turnOFF == false) {
-   myPort.write(FanOnPins[i]);  
-   //println("Fan ", FanOnPins[i]);
-   }
-   }
-   }
-   println("turnOff val " + turnOFF);
-   */
+//   // version 1.0
+//   for (int i=0; i < 5; i++) {
+//     int timeSinceRestart = millis() - restartTime;
+//     //if (timeEllapsed/1000 > FanTimes[i] && timeEllapsed/1000 < FanTimes[i+1]) {
+//     if ((timeEllapsed-restartTime)/1000.0 > FanTimes[i] && (timeEllapsed-restartTime)/1000.0 < FanTimes[i+1]) {
+//       FanForcesX = Accel_x[i];
+//       FanForcesY = Accel_y[i];
+//       if (timeEllapsed/1000 > FanTimes[5]) {
+//         timeEllapsed = 0;
+//         // turnOFF = true;
+//       }
+//       if (bUseSerial == true && turnOFF == false) {
+//         myPort.write(FanOnPins[i]);  
+//         //println("Fan ", FanOnPins[i]);
+//       }
+//     }
+//   }
+//   println("turnOff val " + turnOFF);
+//   
 
   /********
    //preciso na verdade trocar a zona de interesse do array 
@@ -440,40 +449,38 @@ void draw() {
    ********/
 
   //version 2.0
-
-  //  if (totalAlive < 20000) {k=0; println (k);}
-  //  else if (totalAlive > 20001 && totalAlive < 40000) {k=3; println (k);}
-  //  else if (totalAlive > 40001) { k=6; println (k);}
-
   //if (appState == STATE_PARTICLES) {
-    if ((millis()-timeStartedFace)/1000.0 < mtTime *.25) {  k=0;  println (k);  }
-    else if ((millis()-timeStartedFace)/1000.0 > mtTime *.25 && (millis()-timeStartedFace)/1000.0 < mtTime *.50) {  k=3;  println (k);  }
-    else if ((millis()-timeStartedFace)/1000.0 > mtTime *.50 && (millis()-timeStartedFace)/1000.0 < mtTime *.75) {  k=6;  println (k);  }
-    else if ((millis()-timeStartedFace)/1000.0 > mtTime *.75) { k=9;  println (k); }
+    if ((millis()-timeStartedFace)/1000.0 < mtTime *.25) {  k=0; }// println (k);  }
+    else if ((millis()-timeStartedFace)/1000.0 > mtTime *.25 && (millis()-timeStartedFace)/1000.0 < mtTime *.50) {  k=3; }// println (k);  }
+    else if ((millis()-timeStartedFace)/1000.0 > mtTime *.50 && (millis()-timeStartedFace)/1000.0 < mtTime *.75) {  k=6; }// println (k);  }
+    else if ((millis()-timeStartedFace)/1000.0 > mtTime *.75) { k=9; }// println (k); }
   //}
 
-  // - by Ewan
+
   float pThresh = 150000;
   
-  for (int i=w; i<z; i++) {
+  for (int i=w+k; i<=z+k; i++) {
     FanProb[i] = totalAlive/pThresh;
-    println("Fan prob ", FanProb[i] );
-
+    //println("Fan prob ", FanProb[i] );
+  
+    // - by Ewan
     if (FanProb[i] > random(1.0) && random(20) > 19) {
-      FanForcesX += blend*FanForcesX + (1-blend)*Accel_x[i];
-      FanForcesY += blend*FanForcesY + (1-blend)*Accel_y[i];
-      //    println("FanForcesX ", FanForcesX);
-      //    println("FanForcesY ", FanForcesY);
+//      FanForcesX += blend*FanForcesX + (1-blend)*Accel_x[i];
+//      FanForcesY += blend*FanForcesY + (1-blend)*Accel_y[i];
+      FanForcesX = Accel_x[i];
+      FanForcesY = Accel_y[i];
+      println("FanForcesX ", FanForcesX);
+      println("FanForcesY ", FanForcesY);
 
       if (bUseSerial) {
         myPort.write(FanOnPins[i]);  
-        println("Fan ", FanOnPins[i]);
+        //println("Fan ", FanOnPins[i]);
       }
     }
   }
-  println("Total Alive: ", totalAlive);
+  //println("Total Alive: ", totalAlive);
    
-  
+     
   //using blob edges  
   for (int n=0 ; n<theBlobDetection.getBlobNb() ; n++)
   {
@@ -490,22 +497,22 @@ void draw() {
 
         locationB.x = eA.x *screenWidth *invWidth;
         locationB.y = eA.y *screenHeight *invHeight;
-
 //        locationB.x = eB.x *screenWidth *invWidth;
 //        locationB.y = eB.y *screenHeight *invHeight;   
         
-        if (startDust && useBlobs)  addForceBlobs(locationB.x, locationB.y, FanForcesX/10, FanForcesY/10);
+         if (startDust && useBlobs)  addForceBlobs(locationB.x, locationB.y, FanForcesX/10, FanForcesY/10);
       }
     }
   }
   
   
   // update the particles and create new
-  if (startDust) {
+  if (startDust==true) {
     addForce(location.x, location.y, FanForcesX, FanForcesY); //FanForcesX and FanForcesY means the velocity and direction
     //addForce(mouseNormX, mouseNormY, FanForcesX, FanForcesY); //FanForcesX and FanForcesY means the velocity and direction
     //addForce(mouseNormX, mouseNormY+.15, FanForcesX, FanForcesY); //FanForcesX and FanForcesY means the velocity and direction
   }
+
 
   // reset totalAlive before making the check of all particles
   totalAlive = 0;
@@ -532,9 +539,55 @@ void draw() {
   //println(frameRate);
 
   //reset the fan forces each loop, after drawing them
-  FanForcesX = Accel_x[k];
-  FanForcesY = Accel_y[k];
+  FanForcesX = Accel_x[0];
+  FanForcesY = Accel_y[0];
 }
+
+
+// add force and dye to fluid, and create particles
+void addForce(float x, float y, float _FanForcesX, float _FanForcesY) {
+  
+  // balance the x and y components of speed with the screen aspect ratio
+  float speed = _FanForcesX * _FanForcesX  + _FanForcesY * _FanForcesY * aspectRatio2;    
+  if (speed > 0) {
+    if (x<0) x = 0; 
+    else if (x>1) x = 1;
+    if (y<0) y = 0; 
+    else if (y>1) y = 1;
+  
+  float velocityMult = 3.0f;
+  int index = fluidSolver.getIndexForNormalizedPosition(x, y);
+
+  particleSystem.addParticles(x *screenWidth, y *screenHeight);
+
+  //_FanForcesX = (mouseX)/ ( width /5);  // _FanForcesX and dy means the velocity and direction
+  //_FanForcesY = -((mouseY)/ ( height /5));  // _FanForcesY and dy means the velocity and direction
+  fluidSolver.uOld[index] += _FanForcesX * velocityMult;
+  fluidSolver.vOld[index] += _FanForcesY * velocityMult;
+  } 
+}
+
+
+// add force to blobs
+void addForceBlobs(float x, float y, float _FanForcesX, float _FanForcesY) {
+  
+  // balance the x and y components of speed with the screen aspect ratio
+  float speed = _FanForcesX * _FanForcesX  + _FanForcesY * _FanForcesY * aspectRatio2;    
+  if (speed > 0) {
+    if (x<0) x = 0; 
+    else if (x>1) x = 1;
+    if (y<0) y = 0; 
+    else if (y>1) y = 1;
+  float velocityMult = 1.3f;
+  int index = fluidSolver.getIndexForNormalizedPosition(x, y);
+
+  particleSystem.addParticlesBlobs(x *screenWidth, y *screenHeight, pNum);
+
+  fluidSolver.uOld[index] += _FanForcesX * velocityMult;
+  fluidSolver.vOld[index] += _FanForcesY * velocityMult;
+  }
+}
+
 
 
 void keyPressed() {
@@ -554,44 +607,6 @@ void keyPressed() {
     //saveFrame("data/savedBackground.jpg");
     break;
   }
-}
-
-
-// add force and dye to fluid, and create particles
-void addForce(float x, float y, float _FanForcesX, float _FanForcesY) {
-//  float speed = _FanForcesX * _FanForcesX  + _FanForcesY * _FanForcesY * aspectRatio2;    // balance the x and y components of speed with the screen aspect ratio
-//  if (speed > 0) {
-//    if (x<0) x = 0; 
-//    else if (x>1) x = 1;
-//    if (y<0) y = 0; 
-//    else if (y>1) y = 1;
-//  }
-
-  float velocityMult = 3.0f;
-
-  int index = fluidSolver.getIndexForNormalizedPosition(x, y);
-
-  particleSystem.addParticles(x *screenWidth, y *screenHeight);
-
-  //_FanForcesX = (mouseX)/ ( width /5);  // _FanForcesX and dy means the velocity and direction
-  //_FanForcesY = -((mouseY)/ ( height /5));  // _FanForcesY and dy means the velocity and direction
-
-  fluidSolver.uOld[index] += _FanForcesX * velocityMult;
-  fluidSolver.vOld[index] += _FanForcesY * velocityMult;
-  
-}
-
-
-// add force to Blobs
-void addForceBlobs(float x, float y, float _FanForcesX, float _FanForcesY) {
-
-  float velocityMult = 1.3f;
-  int index = fluidSolver.getIndexForNormalizedPosition(x, y);
-
-  particleSystem.addParticlesBlobs(x *screenWidth, y *screenHeight, pNum);
-
-  fluidSolver.uOld[index] += _FanForcesX * velocityMult;
-  fluidSolver.vOld[index] += _FanForcesY * velocityMult;
 }
 
 

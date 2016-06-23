@@ -59,6 +59,8 @@ class Particle {
   void update() {
     // only update if particle is visible
     if (alpha == 0) return;
+    
+    if (mousePressed) myForce = .01;
 
     // read fluid info and add to velocity
     int fluidIndex = fluidSolver.getIndexForNormalizedPosition(x * invWidth, y * invHeight);

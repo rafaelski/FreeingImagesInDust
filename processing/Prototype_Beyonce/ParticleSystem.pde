@@ -50,7 +50,7 @@ class ParticleSystem {
   FloatBuffer posArray;
   FloatBuffer colArray;
 
-  final static int maxParticles = 150000;
+  final static int maxParticles = 15000;
   int curIndex;
 
   Particle[] particles;
