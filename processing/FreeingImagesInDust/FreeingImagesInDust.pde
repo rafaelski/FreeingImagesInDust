@@ -54,7 +54,7 @@ final float FLUID_WIDTH = 140;
 
 float mtTime = 30; //mirror total time. total time of the experience, until desappear
 int pNum = 25;  //particles init per second. when using blobs
-boolean bUseSerial = false;  // use or not the serial port to control the Arduino
+boolean bUseSerial = true;  // use or not the serial port to control the Arduino
 
 float invWidth, invHeight;    // inverse of screen dimensions
 float aspectRatio, aspectRatio2;
@@ -108,8 +108,8 @@ float blend = 0.0009;
 //float[] Accel_y = { .1, -1, 10, -2, .1, -10, 1, 5};
 
 //2.0
-float[] Accel_x = {.4, .7, .1, -1, -.3, -.3, .1, -.2, .3, -.02, -.01, -.01};
-float[] Accel_y = {.4, .7, .1, -1, -.5, -.3, .1, -.2, .3, -.001, -.02, -.03};
+float[] Accel_x = {.4, .7, .1, -1, -.3, -.3, .1, -.2, .3, .02, .01, .01};
+float[] Accel_y = {.4, .7, .1, -1, -.5, -.3, .1, -.2, .3, .001, .02, .03};
 float [] FanProb = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 //3.0 to blob
@@ -120,8 +120,9 @@ float [] FanProb = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 //int[] FanTimes = { 10, 20, 30, 35, 40, 50};
 int[] FanTimes = {1, 5, 10, 15, 20, 25};
 
-int[] FanOnPins = {24, 26, 28, 30, 32, 34, 24, 24, 24};
-int[] FanOffPins = {24, 26, 28, 30, 32, 34, 24, 24, 24};
+//int[] FanOnPins = {24, 26, 28, 30, 32, 34, 24, 24, 24};
+//int[] FanOffPins = {24, 26, 28, 30, 32, 34, 36, 24, 24};
+int[] FanOnPins = {1, 2, 3, 4, 5, 6, 7, 1, 1, 1, 1, 1};
 
 float totalAlive = 0;
 //float alpha;
@@ -165,7 +166,7 @@ void setup() {
   size(1152, 768, P3D);  // size of the camera
 
   if (bUseSerial) {
-    String portName = Serial.list()[2];
+    String portName = Serial.list()[1];
     myPort = new Serial(this, portName, 9600);
   }
 
@@ -265,9 +266,9 @@ void draw() {
       println ("timeStartedFace reseting ", timeStartedFace);
 
       //for (int i=0; i < 5; i++) {
-      if (bUseSerial == true && turnOFF == true) {
-        myPort.write(0);
-      }
+//      if (bUseSerial == true && turnOFF == true) {
+//        myPort.write('0');
+//      }
       //}
     }
   }
@@ -276,7 +277,9 @@ void draw() {
     for ( int i = 0; i < screenWidth*screenHeight; i++) {
       stillFrame.pixels[i] = color(255, 255, 255, alphaFade);
     }
-    stillFrame.updatePixels();
+    stillFrame.updatePixels(); 
+    
+    //if (bUseSerial)  myPort.write('1');
 
     if (alphaFade < 255) alphaFade += 2;
     else { 
@@ -291,7 +294,10 @@ void draw() {
   // fade out all image after 80% of mtTime
   if (timeStartedFace>0 && (millis()-timeStartedFace)/1000.0 > mtTime *.80 && totalAlive > 100) {
     if (alphaFade > 0) alphaFade -= 2;
-    if (alphaFade < 10) appState = STATE_FADE_OUT;
+    if (alphaFade < 10) {
+      appState = STATE_FADE_OUT;
+      if (bUseSerial)  myPort.write('0');  // turn off everything after .80% of time
+    }   
   }
 
 
@@ -333,8 +339,8 @@ void draw() {
 
     if (d < closestDist && d < 400) {
       closestDist = d;
-      PosFaceX = (faces[i].x - faces[i].width*.5) *8 ;
-      PosFaceY = (faces[i].y - faces[i].height*.15)  *8  ;
+      PosFaceX = (faces[i].x - faces[i].width*.5) *8;
+      PosFaceY = (faces[i].y - faces[i].height*.15)  *8;
       WidthFace = (faces[i].width+faces[i].width*1) *8;
       HeightFace = (faces[i].height+faces[i].height*.5) *8;
     }
@@ -342,12 +348,13 @@ void draw() {
 
   // if there is at least 1 face, start dust and the fans
   if (faces.length > 0) { //If we have a face, trigger startDust and tells Arduino
+    
     if (appState == STATE_PARTICLES) {
-      // wait 5.0 seconds to start the dust effect
+      // wait 2.0 seconds to start the dust effect
       if ( (millis()-timeStartedFace)/1000.0 > 2 ) {
         startDust = true;
         //println("ROLOU ");
-        //if (bUseSerial)  myPort.write('1');
+        //if (bUseSerial)  myPort.write('1');  // turn on everything if there is a face and particles
         radius = 45;
         pNum = 25;  //to blob
       }
@@ -364,10 +371,9 @@ void draw() {
         println ("timeStartedFace inside NewFace ", timeStartedFace);
       }
     }
-  }
-  else {
+  } else {
     // if no faces found turn off fans and particles slowly
-    //if (bUseSerial)  myPort.write('0');
+    
 
     radius = 0;
     pNum = 0; //to blob
@@ -388,10 +394,8 @@ void draw() {
     location.x = (PosFaceX-faceXOff + map(noise(noff.x), 0, 1, 0, WidthFace+faceWOff)) *invWidth;
     location.y = ((PosFaceY-140)+faceYOff + map(noise(noff.y), 0, 1, 0, HeightFace+faceHOff)) *invHeight;
     noff.add(0.2, 0.2, 0);
-    
 //    mouseNormX = location.x * invWidth;
 //    mouseNormY = location.y * invHeight;
-
 
 
   // after 50% of time, adjust the area of the face tracking so perlin mover has larger area over time
@@ -469,13 +473,18 @@ void draw() {
 //      FanForcesY += blend*FanForcesY + (1-blend)*Accel_y[i];
       FanForcesX = Accel_x[i];
       FanForcesY = Accel_y[i];
-      println("FanForcesX ", FanForcesX);
-      println("FanForcesY ", FanForcesY);
+      //println("FanForcesX ", FanForcesX);
+      //println("FanForcesY ", FanForcesY);
 
-      if (bUseSerial) {
-        myPort.write(FanOnPins[i]);  
-        //println("Fan ", FanOnPins[i]);
+      if (bUseSerial && (millis()-timeStartedFace)/1000.0 < mtTime *.75) {
+        myPort.write(FanOnPins[i]);
+        //myPort.write('0');  
+        println("Fan ", FanOnPins[i]);
       }
+//      if (bUseSerial && (millis()-timeStartedFace)/1000.0 > mtTime *.75) {
+//        myPort.write('0');
+//      }
+      
     }
   }
   //println("Total Alive: ", totalAlive);
@@ -520,9 +529,11 @@ void draw() {
 
   // draw everything
   pushMatrix();  
-    image(ourBackground, 0, 0);
     scale(-1, 1);
     translate(-screenWidth, 0);
+    image(ourBackground, 0, 0);
+    //scale(-1, 1);
+    //translate(-screenWidth, 0);
     //    pushMatrix(); // use this for rotate the aspect ratio into vertical mode;
     //      scale(1.3, 1.3);
     //      translate(-220, 15);
@@ -539,8 +550,8 @@ void draw() {
   //println(frameRate);
 
   //reset the fan forces each loop, after drawing them
-  FanForcesX = Accel_x[0];
-  FanForcesY = Accel_y[0];
+  //FanForcesX = Accel_x[0];
+  //FanForcesY = Accel_y[0];
 }
 
 

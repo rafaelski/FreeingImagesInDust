@@ -17,7 +17,7 @@ elapsedMillis timeElapsed;
 //unsigned int RelaysOFF[] = {9, 8, 7, 6, 5, 4, 3};
 
 //RELAYS
-unsigned int Relays[] = {24, 26, 28, 32, 34, 36};
+unsigned int Relays[] = {2, 3, 4, 5, 6, 7};
 
 //unsigned int FaceTrigger[] = {0, 1};
 char w;
@@ -26,10 +26,10 @@ char w;
 void setup() {
   Serial.begin(9600);
 
-  for (int k = 0; k < 5; k++) {
+  for (int k = 0; k < 6; k++) {
     pinMode(Relays[k], OUTPUT);
     digitalWrite(Relays[k], RELAY_OFF);
-  delay(100); //Check that all relays are inactive at Reset
+    delay(100); //Check that all relays are inactive at Reset
   }
 
   //  pinMode(13, OUTPUT);
@@ -42,28 +42,34 @@ void setup() {
 void loop() {
   //elapsedmillisloop();
 
-  if (Serial.available() > 0) {
-    w = Serial.read();
-  delay(100); //Check that all relays are inactive at Reset
-
+    if (Serial.available() > 0) {
+      w = Serial.read();
+  //    delay(10); //Check that all relays are inactive at Reset
+    Serial.println(w);
+  
     if (w == 0) {
 //    for (int k = 0; k < 5; k++) digitalWrite(Relays[k], RELAY_OFF);
-      digitalWrite(Relays[0], RELAY_OFF);
-  delay(100); //Check that all relays are inactive at Reset
-      digitalWrite(Relays[1], RELAY_OFF);
-  delay(100); //Check that all relays are inactive at Reset
-      digitalWrite(Relays[2], RELAY_OFF);
-  delay(100); //Check that all relays are inactive at Reset
-      digitalWrite(Relays[3], RELAY_OFF);
-  delay(100); //Check that all relays are inactive at Reset
-      digitalWrite(Relays[4], RELAY_OFF);
-  delay(100); //Check that all relays are inactive at Reset
-      digitalWrite(Relays[5], RELAY_OFF);
-  delay(100); //Check that all relays are inactive at Reset
-     } else {      
-      digitalWrite(w, RELAY_ON);
-  delay(100); //Check that all relays are inactive at Reset
+        digitalWrite(Relays[0], RELAY_ON);
+        delay(1000);
+        digitalWrite(Relays[1], RELAY_ON);
+        delay(1000); 
+        digitalWrite(Relays[2], RELAY_ON);
+        delay(1000); 
+        digitalWrite(Relays[3], RELAY_ON);
+        delay(1000); 
+        digitalWrite(Relays[4], RELAY_ON);
+        delay(1000); 
+        digitalWrite(Relays[5], RELAY_ON);
+        delay(1000); 
+     } else {
+        for (int k = 0; k < 6; k++) {
+          digitalWrite(Relays[k], RELAY_OFF);
+          delay(10);
+        }
+//      digitalWrite(w, RELAY_OFF);
+//      delay(100); //Check that all relays are inactive at Reset
     }
+
   }
 }
 
