@@ -55,6 +55,8 @@ final float FLUID_WIDTH = 140;
 float mtTime = 30; //mirror total time. total time of the experience, until desappear
 int pNum = 25;  //particles init per second. when using blobs
 boolean bUseSerial = true;  // use or not the serial port to control the Arduino
+boolean useBlobs = false;
+
 
 float invWidth, invHeight;    // inverse of screen dimensions
 float aspectRatio, aspectRatio2;
@@ -87,7 +89,7 @@ PVector noff;
 boolean setOnce = false;
 boolean startDust = false;
 
-boolean turnOFF = false;
+//boolean turnOFF = false;
 
 // Face Tracking
 float PosFaceX, PosFaceY, WidthFace, HeightFace;
@@ -139,7 +141,7 @@ int STATE_FADE_BACK_IN = 2;
 int STATE_FADE_OUT = 3;
 int STATE_NOBODY_HERE = 4;
 int appState = 0;
-int restartTime;
+//int restartTime;
 
 //focus of forces array 
 int w = 0;
@@ -158,7 +160,6 @@ BlobDetection theBlobDetection;
 PImage imgBlob;
 Blob b;
 EdgeVertex eA, eB;
-boolean useBlobs = false;
 
 
 void setup() {
@@ -221,7 +222,7 @@ void setup() {
     stillFrame.pixels[i] = color(255, 255, 255, 255);
   }
   stillFrame.updatePixels();
-  restartTime = millis();
+  //restartTime = millis();
 }
 
 
@@ -245,6 +246,7 @@ void draw() {
   // update fading in and out states
   // and reseting everything
   if (appState == STATE_FADE_OUT) {
+    
     if (totalAlive == 0) {
       startDust = false;
       appState = STATE_FADE_BACK_IN;
@@ -255,46 +257,46 @@ void draw() {
       faceWOff = 0;
       faceHOff = 0;     
       FanForcesX = Accel_x[0];
-      FanForcesY = Accel_y[0]; 
-//      FanForcesX = 0.3;
-//      FanForcesY = 0.3;
+      FanForcesY = Accel_y[0];
       useBlobs = false;  // to blob
-      turnOFF = true;
-      // reset the pvector noise
-//      noff.set(random(1000), random(1000));
-      
+      //turnOFF = true;      
       println ("timeStartedFace reseting ", timeStartedFace);
     }
+    
   }
-
+  
+  
   if (appState == STATE_FADE_BACK_IN) {
+    
     for ( int i = 0; i < screenWidth*screenHeight; i++) {
       stillFrame.pixels[i] = color(255, 255, 255, alphaFade);
     }
     stillFrame.updatePixels(); 
-    
-    //if (bUseSerial)  myPort.write('1');
 
     if (alphaFade < 255) alphaFade += 2;
     else { 
       println("ALPHA 100% ");
       appState = STATE_PARTICLES;
-      turnOFF = false;
-      timeStartedFace = millis();  //get this value and goes out from this loop;
-      restartTime = millis();
+      FanForcesX = Accel_x[0];
+      FanForcesY = Accel_y[0];
+      //turnOFF = false;
+      //timeStartedFace = millis();  //get this value and goes out from this loop;
+      //restartTime = millis();
     }
+
   }
     
+  
   // fade out all image after 80% of mtTime
   if (timeStartedFace>0 && (millis()-timeStartedFace)/1000.0 > mtTime *.80 && totalAlive > 100) {
     if (alphaFade > 10) {
       alphaFade -= 2;
       if (bUseSerial) myPort.write('f');
-    }      
+    }
     if (alphaFade < 10) {
       alphaFade -= 2;
-      appState = STATE_FADE_OUT;  // turn off everything after .80% of time
-    if (bUseSerial)  myPort.write('o');
+      appState = STATE_FADE_OUT;
+      if (bUseSerial)  myPort.write('o');
     }   
   }
 
@@ -328,6 +330,7 @@ void draw() {
   theBlobDetection.computeBlobs(imgBlob.pixels);
 
 
+
   // find closest face to center and get its parameters
   int closestDist = width*height*1000; // hack to start with big distance
 
@@ -344,14 +347,14 @@ void draw() {
     }
   }
 
+
   // if there is at least 1 face, start dust and the fans
-  if (faces.length > 0) { //If we have a face, trigger startDust and tells Arduino
+  if (faces.length > 0) {
             
     if (appState == STATE_PARTICLES) {
-      // wait 2.0 seconds to start the dust effect
-      if ( (millis()-timeStartedFace)/1000.0 > 2 ) {
+      // wait 5.0 seconds to start the dust effect
+      if ( (millis()-timeStartedFace)/1000.0 > 5 ) {
         startDust = true;
-        //println("ROLOU ");
         //if (bUseSerial)  myPort.write('1');  // turn on everything if there is a face and particles
         radius = 45;
         pNum = 25;  //to blob
@@ -359,7 +362,6 @@ void draw() {
 
       // check if this is a new face (no faces for more than 5 seconds or the first time ever)
       if (timeStartedFace == -1 || (timeStartedFace==0 && (millis()-timeLastNoFace)/1000.0 > 5)) { 
-        println("NEW FACE ");
         timeStartedFace = millis();
         timeLastNoFace = 0;
         faceXOff = 0;
@@ -367,15 +369,14 @@ void draw() {
         faceWOff = 0;
         faceHOff = 0;
         println ("timeStartedFace inside NewFace ", timeStartedFace);
+        // set the 1st fan on, acordinly with the 1st force of particles
+        myPort.write(FanOnPins[0]);  
       }
     }
   } else {
-    // if no faces found turn off fans and particles slowly
-    
-
+    // if no faces found turn off s and particles slowly
     radius = 0;
     pNum = 0; //to blob
-
     // record the time we have no faces
     timeLastNoFace = millis();
 
@@ -398,23 +399,23 @@ void draw() {
 
   // after 50% of time, adjust the area of the face tracking so perlin mover has larger area over time
   // and starts using blobs
-  if (faces.length>0 && (millis()-timeStartedFace)/1000.0 > mtTime *.50) {   
-    useBlobs = true; // to blob
-    // grow in y+height direction until reach the bottom
-    if (faceHOff < height-250) {
-      faceHOff += 2 *growing;
-    }    
-    if ( faceWOff < WidthFace*1.5) {
-      faceWOff += .6 *growing;
-      faceXOff = faceWOff*.6;
-    }
-  } // if no face or at beginnig of time, reset the tracking face position
-  else {
-    faceXOff = 0;
-    faceYOff = 0;
-    faceWOff = 0;
-    faceHOff = 0;
-  }
+//  if (faces.length>0 && (millis()-timeStartedFace)/1000.0 > mtTime *.50) {   
+//    //useBlobs = true; // to blob
+//    // grow in y+height direction until reach the bottom
+//    if (faceHOff < height-250) {
+//      faceHOff += 2 *growing;
+//    }    
+//    if ( faceWOff < WidthFace*1.5) {
+//      faceWOff += .6 *growing;
+//      faceXOff = faceWOff*.6;
+//    }
+//  } // if no face or at beginnig of time, reset the tracking face position
+//  else {
+//    faceXOff = 0;
+//    faceYOff = 0;
+//    faceWOff = 0;
+//    faceHOff = 0;
+//  }
 
   
   //stop using blobs after the 74% mark
@@ -453,9 +454,9 @@ void draw() {
   //version 2.0
   //if (appState == STATE_PARTICLES) {
     if ((millis()-timeStartedFace)/1000.0 < mtTime *.25) {  k=0; }// println (k);  }
-    else if ((millis()-timeStartedFace)/1000.0 > mtTime *.25 && (millis()-timeStartedFace)/1000.0 < mtTime *.50) {  k=3; }// println (k);  }
-    else if ((millis()-timeStartedFace)/1000.0 > mtTime *.50 && (millis()-timeStartedFace)/1000.0 < mtTime *.75) {  k=6; }// println (k);  }
-    else if ((millis()-timeStartedFace)/1000.0 > mtTime *.75) { k=9; }// println (k); }
+    else if ((millis()-timeStartedFace)/1000.0 > mtTime *.25 && (millis()-timeStartedFace)/1000.0 < mtTime *.5) {  k=3; }// println (k);  }
+    else if ((millis()-timeStartedFace)/1000.0 > mtTime *.5 && (millis()-timeStartedFace)/1000.0 < mtTime *.8) {  k=6; }// println (k);  }
+    else if ((millis()-timeStartedFace)/1000.0 > mtTime *.8) { k=9; }// println (k); }
   //}
 
 
@@ -471,14 +472,14 @@ void draw() {
 //      FanForcesY += blend*FanForcesY + (1-blend)*Accel_y[i];
       FanForcesX = Accel_x[i];
       FanForcesY = Accel_y[i];
-      //println("FanForcesX ", FanForcesX);
-      //println("FanForcesY ", FanForcesY);
+      println("FanForcesX ", FanForcesX);
+      println("FanForcesY ", FanForcesY);
 
-      if (bUseSerial && (millis()-timeStartedFace)/1000.0 < mtTime *.75) {
+      if (bUseSerial && k < 9) {
         myPort.write(FanOnPins[i]);
         println("Fan ", FanOnPins[i]);
       }
-      
+
 //      if (bUseSerial && (millis()-timeStartedFace)/1000.0 > mtTime *.75) {
 //        myPort.write('0');
 //      }

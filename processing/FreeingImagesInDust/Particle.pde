@@ -38,7 +38,7 @@ class Particle {
   float alpha;
   float mass;
   float [] colors = new float[3];
-  float myForce = .016; // THIS MUST BE RESETED!!!!!!! WTF WTF WTF HAHAHAHAHAHHA
+  float myForce = .016; // THIS MUST BE RESETED!!!
 
 
   void init(float x, float y, float currR, float currG, float currB) {//, boolean OFF) {
@@ -66,7 +66,7 @@ class Particle {
     vx = fluidSolver.u[fluidIndex] * screenWidth * mass * myForce + vx * MOMENTUM;
     vy = fluidSolver.v[fluidIndex] * screenHeight * mass * myForce + vy * MOMENTUM;
 
-    if (myForce < FLUID_FORCE) myForce += .005; // Oh My God!! THIS MUST BE RESETED!!!!!!! WTF WTF WTF HAHAHAHAHAHHA
+    if (myForce < FLUID_FORCE) myForce += .005;
 
     // simple gravity
     //vy+= -.4;
@@ -79,8 +79,7 @@ class Particle {
     if (x<0) {
       x = 0;
       vx *= -1;
-    } 
-    else if (x > screenWidth) {
+    } else if (x > screenWidth) {
       x = screenWidth;
       vx *= -1;
     }  
@@ -88,8 +87,7 @@ class Particle {
     if (y<0) {
       y = 0;
       vy *= -1;
-    } 
-    else if (y > screenHeight) {
+    } else if (y > screenHeight) {
       y = screenHeight;
       vy *= -1;
     }
@@ -100,21 +98,13 @@ class Particle {
       vy = random(-1, 1);
     }
 
-    //    if (startDust == false) { 
-    //      alpha *= 0.08;
-    //      fluidSolver.reset();
-    //      x=0;
-    //      y=0;
-    //      println("reseta a porra");
-    //    } 
-    //    else {
-    alpha *= 0.98;
-    //    }
 
     // fade out a bit (and kill if alpha == 0);
-    // and reset the velocity
+    alpha *= 0.98;
+
     if (alpha < 0.02) {
       alpha = 0;
+      // reset the velocity
       myForce = .016;
     }
   }
@@ -146,7 +136,6 @@ class Particle {
     gl.glVertex2f(x, y);
   }
 }
-
 
 
 

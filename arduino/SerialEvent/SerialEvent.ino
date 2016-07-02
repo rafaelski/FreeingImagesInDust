@@ -4,7 +4,7 @@
 //String inputString = "";         // a string to hold incoming data
 //boolean stringComplete = false;  // whether the string is complete
 
-unsigned int Relays[] = {24, 26, 28, 30, 32, 34, 32, 34, 24};
+unsigned int Relays[] = {24, 26, 28, 30, 32, 34,   28, 30, 32};
 
 //int mtTime = 30;  // mirrot total Time
 //boolean passHalf = false;
@@ -19,7 +19,7 @@ void setup() {
   // reserve 200 bytes for the inputString:
   //inputString.reserve(200);
 
-  for (int k = 0; k < 8; k++) {
+  for (int k = 0; k < 9; k++) {
     pinMode(Relays[k], OUTPUT);
     digitalWrite(Relays[k], RELAY_OFF);
     delay(10); //Check that all relays are inactive at Reset
@@ -93,13 +93,13 @@ void serialEvent() {
 
     // 3.0
     // turn on the inChar Pin and turn off the rest
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 9; i++) {
       if (i == inChar)  {
         digitalWrite(Relays[inChar], RELAY_ON);
       } else if (inChar != 'f' && inChar != 'o') {
         digitalWrite(Relays[i], RELAY_OFF);
-        delay(10);
-      }
+        //delay(10);
+        }
     }
           // trying to accumulate some fans turned on
     //    else if (inChar != 6 && inChar != 7 && inChar != 8) {
@@ -110,15 +110,14 @@ void serialEvent() {
 
     // when the time (in processing) is over, turn everyone off
     if (inChar == 'f') {
-      for (int i = 6; i < 8; i++) {
+      for (int i = 6; i < 9; i++) {
         digitalWrite(Relays[i], RELAY_OFF);
-        delay(10);
       }
       digitalWrite(Relays[1], RELAY_ON);
     }
 
     if (inChar == 'o') {
-      for (int i = 0; i < 8; i++) {
+      for (int i = 0; i < 9; i++) {
         digitalWrite(Relays[i], RELAY_OFF);
         delay(10);
       }
