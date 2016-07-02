@@ -1,25 +1,31 @@
 #define RELAY_ON 0
 #define RELAY_OFF 1
 
-String inputString = "";         // a string to hold incoming data
-boolean stringComplete = false;  // whether the string is complete
+//String inputString = "";         // a string to hold incoming data
+//boolean stringComplete = false;  // whether the string is complete
 
-unsigned int Relays[] = {24, 26, 28, 30, 32, 34, 36};
+unsigned int Relays[] = {24, 26, 28, 30, 32, 34, 32, 34, 24};
+
+//int mtTime = 30;  // mirrot total Time
+//boolean passHalf = false;
+
+//char inChar;
+//char last_inChar;
 
 
 void setup() {
   // initialize serial:
   Serial.begin(9600);
   // reserve 200 bytes for the inputString:
-  inputString.reserve(200);
+  //inputString.reserve(200);
 
-  for (int k = 0; k < 6; k++) {
+  for (int k = 0; k < 8; k++) {
     pinMode(Relays[k], OUTPUT);
     digitalWrite(Relays[k], RELAY_OFF);
     delay(10); //Check that all relays are inactive at Reset
   }
-
 }
+
 
 void loop() {
   // print the string when a newline arrives:
@@ -39,10 +45,9 @@ void loop() {
 */
 void serialEvent() {
   while (Serial.available()) {
+
     // get the new byte:
     char inChar = (char)Serial.read();
-    // add it to the inputString:
-    //inputString += inChar;
 
     // if the incoming character is a newline, set a flag
     // so the main loop can do something about it:
@@ -50,6 +55,8 @@ void serialEvent() {
     //      stringComplete = true;
     //    }
 
+
+    // 1.0
     // turn everything on/off based on message received
     //    if (inChar == '1') {
     //        for (int k = 0; k < 6; k++) {
@@ -65,26 +72,62 @@ void serialEvent() {
     //    }
 
 
+    // 2.0
     // turn on the inChar Pin and turn off the rest
-    for (int i = 0; i < 6; i++) {
+    //    for (int i = 0; i < 6; i++) {
+    //      if (i == inChar)  {
+    //        digitalWrite(Relays[inChar], RELAY_ON);
+    //      } else {
+    //        digitalWrite(Relays[i], RELAY_OFF);
+    //        delay(10);
+    //        }
+    //    }
+    // when the time (in processing) is over, turn everyone off
+    //    if (inChar == '0') {
+    //      for (int k = 0; k < 6; k++) {
+    //        digitalWrite(Relays[k], RELAY_OFF);
+    //        delay(10);
+    //      }
+    //    }
+
+
+    // 3.0
+    // turn on the inChar Pin and turn off the rest
+    for (int i = 0; i < 8; i++) {
       if (i == inChar)  {
         digitalWrite(Relays[inChar], RELAY_ON);
-      } else {
+      } else if (inChar != 'f' && inChar != 'o') {
         digitalWrite(Relays[i], RELAY_OFF);
         delay(10);
       }
     }
+          // trying to accumulate some fans turned on
+    //    else if (inChar != 6 && inChar != 7 && inChar != 8) {
+    //          digitalWrite(Relays[i], RELAY_OFF);
+    //          delay(10);
+    //          }
+    //    }
 
     // when the time (in processing) is over, turn everyone off
-    if (inChar == '0') {
-      for (int k = 0; k < 6; k++) {
-        digitalWrite(Relays[k], RELAY_OFF);
+    if (inChar == 'f') {
+      for (int i = 6; i < 8; i++) {
+        digitalWrite(Relays[i], RELAY_OFF);
+        delay(10);
+      }
+      digitalWrite(Relays[1], RELAY_ON);
+    }
+
+    if (inChar == 'o') {
+      for (int i = 0; i < 8; i++) {
+        digitalWrite(Relays[i], RELAY_OFF);
         delay(10);
       }
     }
 
   }
 }
+
+
 
 
 

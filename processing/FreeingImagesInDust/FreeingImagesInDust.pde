@@ -118,11 +118,11 @@ float [] FanProb = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 //float [] FanProb = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 //int[] FanTimes = { 10, 20, 30, 35, 40, 50};
-int[] FanTimes = {1, 5, 10, 15, 20, 25};
+//int[] FanTimes = {1, 5, 10, 15, 20, 25};
 
 //int[] FanOnPins = {24, 26, 28, 30, 32, 34, 24, 24, 24};
 //int[] FanOffPins = {24, 26, 28, 30, 32, 34, 36, 24, 24};
-int[] FanOnPins = {1, 2, 3, 4, 5, 6, 7, 1, 1, 1, 1, 1};
+int[] FanOnPins = {0, 1, 2, 3, 4, 5, 6, 7, 8};
 
 float totalAlive = 0;
 //float alpha;
@@ -264,12 +264,6 @@ void draw() {
 //      noff.set(random(1000), random(1000));
       
       println ("timeStartedFace reseting ", timeStartedFace);
-
-      //for (int i=0; i < 5; i++) {
-//      if (bUseSerial == true && turnOFF == true) {
-//        myPort.write('0');
-//      }
-      //}
     }
   }
 
@@ -293,10 +287,14 @@ void draw() {
     
   // fade out all image after 80% of mtTime
   if (timeStartedFace>0 && (millis()-timeStartedFace)/1000.0 > mtTime *.80 && totalAlive > 100) {
-    if (alphaFade > 0) alphaFade -= 2;
+    if (alphaFade > 10) {
+      alphaFade -= 2;
+      if (bUseSerial) myPort.write('f');
+    }      
     if (alphaFade < 10) {
-      appState = STATE_FADE_OUT;
-      if (bUseSerial)  myPort.write('0');  // turn off everything after .80% of time
+      alphaFade -= 2;
+      appState = STATE_FADE_OUT;  // turn off everything after .80% of time
+    if (bUseSerial)  myPort.write('o');
     }   
   }
 
@@ -348,7 +346,7 @@ void draw() {
 
   // if there is at least 1 face, start dust and the fans
   if (faces.length > 0) { //If we have a face, trigger startDust and tells Arduino
-    
+            
     if (appState == STATE_PARTICLES) {
       // wait 2.0 seconds to start the dust effect
       if ( (millis()-timeStartedFace)/1000.0 > 2 ) {
@@ -478,9 +476,9 @@ void draw() {
 
       if (bUseSerial && (millis()-timeStartedFace)/1000.0 < mtTime *.75) {
         myPort.write(FanOnPins[i]);
-        //myPort.write('0');  
         println("Fan ", FanOnPins[i]);
       }
+      
 //      if (bUseSerial && (millis()-timeStartedFace)/1000.0 > mtTime *.75) {
 //        myPort.write('0');
 //      }
