@@ -48,15 +48,20 @@ import msafluid.*;
 import java.awt.*;
 import javax.media.opengl.GL2;
 import blobDetection.*;
+import codeanticode.syphon.*;
 
+// syphon
+PImage img;
+PGraphics canvas;
+SyphonClient client;
 
-final float FLUID_WIDTH = 140;
+final float FLUID_WIDTH = 100;
 
-float mtTime = 30; //mirror total time. total time of the experience, until desappear
+float mtTime = 60; //mirror total time. total time of the experience, until desappear
 int pNum = 25;  //particles init per second. when using blobs
 boolean bUseSerial = true;  // use or not the serial port to control the Arduino
 boolean useBlobs = false;
-
+boolean rotate90 = true;
 
 float invWidth, invHeight;    // inverse of screen dimensions
 float aspectRatio, aspectRatio2;
@@ -77,6 +82,8 @@ boolean drawFluid = true;
 PVector location;
 PVector locationB; // to blob
 
+//int screenWidth = 720; 
+//int screenHeight = 1280;
 int screenWidth = 1280; 
 int screenHeight = 720;
 
@@ -110,8 +117,8 @@ float blend = 0.0009;
 //float[] Accel_y = { .1, -1, 10, -2, .1, -10, 1, 5};
 
 //2.0
-float[] Accel_x = {.4, .7, .1, -1, -.3, -.3, .1, -.2, .3, .02, .01, .01};
-float[] Accel_y = {.4, .7, .1, -1, -.5, -.3, .1, -.2, .3, .001, .02, .03};
+float[] Accel_x = {.2, .1, .1,   -.3, -.2, -.14,   .1, -.3, .2,   -.02, -.01, -.01};
+float[] Accel_y = {.2, .1, .1,   -.3, -.35, -.14,   .1, -.3, .2,   -.01, -.1, -.1};
 float [] FanProb = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 //3.0 to blob
@@ -149,6 +156,7 @@ int z = 2;
 int k = 0;
 
 
+
 float mouseNormX, mouseNormY;
 
 
@@ -163,14 +171,22 @@ EdgeVertex eA, eB;
 
 
 void setup() {
-  //size(screenWidth, screenHeight, P3D);    // use OPENGL rendering for bilinear filtering on texture
-  size(1152, 768, P3D);  // size of the camera
+  size(screenWidth, screenHeight, P3D);    // use OPENGL rendering for bilinear filtering on texture
+  //size(720, 1280, P3D);  // size of the camera
+  //size(1056,704, P3D); //canon syphon
 
+  // Create syhpon client to receive frames 
+  // from the first available running server: 
+  client = new SyphonClient(this);
+  
+  
   if (bUseSerial) {
     String portName = Serial.list()[1];
     myPort = new Serial(this, portName, 9600);
   }
 
+//  stillFrame = createImage(screenWidth, screenHeight, ARGB);
+//  ourBackground = createImage(screenWidth, screenHeight, RGB);
   stillFrame = createImage(screenWidth, screenHeight, ARGB);
   ourBackground = createImage(screenWidth, screenHeight, RGB);
   ourBackground = loadImage("savedBackground.jpg"); 
@@ -179,17 +195,16 @@ void setup() {
 
 
   //blob
-  imgBlob = createImage(screenWidth/10, screenHeight/10, ARGB);
+  imgBlob = createImage(screenWidth/8, screenHeight/8, ARGB);
   theBlobDetection = new BlobDetection(imgBlob.width, imgBlob.height);
   theBlobDetection.setPosDiscrimination(true);
   theBlobDetection.setThreshold(0.2f); // will detect bright areas whose luminosity > 0.2f;
   
-
-  liveCam = new Capture(this, screenWidth, screenHeight);
+  
+  String[] cameras = { "FaceTime HD Camera", "HP Webcam HD-4110", "Venus USB2.0 Camera"};
+  liveCam = new Capture(this, screenWidth, screenHeight, cameras[0], 30);
   liveCam.start();
-
-  int opencvW = screenWidth/8;
-  int opencvH = screenHeight/8;
+  
 
   opencv = new OpenCV(this, screenWidth/8, screenHeight/8);
   opencv.loadCascade(OpenCV.CASCADE_FRONTALFACE);  
@@ -228,17 +243,17 @@ void setup() {
 
 void draw() {
   //println("appState: " + appState);
-  background(255, 255, 255);
-  //timeEllapsed = millis();
-
+  background(0, 0, 0);
+  //timeEllapsed = millis(); 
+  
   // do nothing if no camera yet
   if (liveCam.pixels.length <= 0 ) return;
 
+   
   // load pixels so we can manipulate
   stillFrame.loadPixels();
   liveCam.loadPixels();
-
-
+  
   // update fluid solver
   fluidSolver.update();
   
@@ -316,13 +331,15 @@ void draw() {
     }
   }
   stillFrame.updatePixels();
-
+  
+ 
 
 
   // resize camera and set opencv for face tracking...
   copyImgCV.copy(liveCam, 0, 0, screenWidth, screenHeight, 0, 0, screenWidth/8, screenHeight/8);
   opencv.loadImage(copyImgCV);
   faces = opencv.detect();
+  
 
   //...and/or blob detection
   imgBlob.copy(liveCam, 0, 0, screenWidth, screenHeight, 0, 0, screenWidth/10, screenHeight/10);
@@ -330,21 +347,30 @@ void draw() {
   theBlobDetection.computeBlobs(imgBlob.pixels);
 
 
+//  // find closest face to center and get its parameters
+//  int closestDist = screenWidth*screenHeight *1000; // hack to start with big distance
+////  int closestDist = width*height*1000; // hack to start with big distance
+//
+//  for (int i = 0; i < faces.length; i++) {
+//    int d = (int)dist(faces[i].x *8, faces[i].y *8, screenWidth*.5, screenHeight*.5);
+////    int d = (int)dist(faces[i].x *8, faces[i].y *8, width*.5, height*.5);
+//    int faceSize = faces[i].width *faces[i].height;
+//
+//    if (d < closestDist && d < 400) {
+//      closestDist = d;
+//      PosFaceX = (faces[i].x - faces[i].width*.5) *8;
+//      PosFaceY = (faces[i].y - faces[i].height*.15)  *8;
+//      WidthFace = (faces[i].width+faces[i].width*1) *8;
+//      HeightFace = (faces[i].height+faces[i].height*.5) *8;
+//   }
+//  }
 
-  // find closest face to center and get its parameters
-  int closestDist = width*height*1000; // hack to start with big distance
-
+  // find faces and get its parameters
   for (int i = 0; i < faces.length; i++) {
-    int d = (int)dist(faces[i].x *8, faces[i].y *8, width*.5, height*.5);
-    int faceSize = faces[i].width*faces[i].height;
-
-    if (d < closestDist && d < 400) {
-      closestDist = d;
-      PosFaceX = (faces[i].x - faces[i].width*.5) *8;
-      PosFaceY = (faces[i].y - faces[i].height*.15)  *8;
-      WidthFace = (faces[i].width+faces[i].width*1) *8;
-      HeightFace = (faces[i].height+faces[i].height*.5) *8;
-    }
+    PosFaceX = (faces[i].x - faces[i].width*.5) *8;
+    PosFaceY = (faces[i].y - faces[i].height*.15)  *8;
+    WidthFace = (faces[i].width+faces[i].width*1) *8;
+    HeightFace = (faces[i].height+faces[i].height*.5) *8;
   }
 
 
@@ -370,7 +396,7 @@ void draw() {
         faceHOff = 0;
         println ("timeStartedFace inside NewFace ", timeStartedFace);
         // set the 1st fan on, acordinly with the 1st force of particles
-        myPort.write(FanOnPins[0]);  
+        myPort.write(FanOnPins[0]);
       }
     }
   } else {
@@ -397,26 +423,30 @@ void draw() {
 //    mouseNormY = location.y * invHeight;
 
 
-  // after 50% of time, adjust the area of the face tracking so perlin mover has larger area over time
+  // after 40% of time, adjust the area of the face tracking so perlin mover has larger area over time
   // and starts using blobs
-//  if (faces.length>0 && (millis()-timeStartedFace)/1000.0 > mtTime *.50) {   
-//    //useBlobs = true; // to blob
-//    // grow in y+height direction until reach the bottom
-//    if (faceHOff < height-250) {
-//      faceHOff += 2 *growing;
-//    }    
-//    if ( faceWOff < WidthFace*1.5) {
-//      faceWOff += .6 *growing;
-//      faceXOff = faceWOff*.6;
-//    }
-//  } // if no face or at beginnig of time, reset the tracking face position
-//  else {
-//    faceXOff = 0;
-//    faceYOff = 0;
-//    faceWOff = 0;
-//    faceHOff = 0;
-//  }
-
+  if (faces.length>0 && (millis()-timeStartedFace)/1000.0 > mtTime *.40) {  
+    // grow in y+height direction until reach the bottom
+    if (faceHOff < screenHeight-50) {
+      faceHOff += 8 *growing;
+    }    
+    if ( faceWOff < WidthFace*1.5) {
+      faceWOff += .6 *growing;
+      faceXOff = faceWOff*.6;
+    }
+  } // if no face or at beginnig of time, reset the tracking face position
+  else {
+    faceXOff = 0;
+    faceYOff = 0;
+    faceWOff = 0;
+    faceHOff = 0;
+  }
+ 
+ 
+  //start using blobs after the 50% mark and before the 74%
+  if (faces.length>0 && (millis()-timeStartedFace)/1000.0 > mtTime *.50 && (millis()-timeStartedFace)/1000.0 < mtTime *.74) {
+    useBlobs = true;  // to blob
+  }
   
   //stop using blobs after the 74% mark
   if (timeStartedFace>0 && (millis()-timeStartedFace)/1000.0 > mtTime *.74 && totalAlive > 100) {
@@ -446,19 +476,22 @@ void draw() {
 //   println("turnOff val " + turnOFF);
 //   
 
-  /********
+  /////////
    //preciso na verdade trocar a zona de interesse do array 
    //dependendo do tempo ou qtde de particulas, indo e voltando
-   ********/
+  /////////
 
   //version 2.0
   //if (appState == STATE_PARTICLES) {
-    if ((millis()-timeStartedFace)/1000.0 < mtTime *.25) {  k=0; }// println (k);  }
-    else if ((millis()-timeStartedFace)/1000.0 > mtTime *.25 && (millis()-timeStartedFace)/1000.0 < mtTime *.5) {  k=3; }// println (k);  }
-    else if ((millis()-timeStartedFace)/1000.0 > mtTime *.5 && (millis()-timeStartedFace)/1000.0 < mtTime *.8) {  k=6; }// println (k);  }
+    if ((millis()-timeStartedFace)/1000.0 < mtTime *.3) {  k=0; }// println (k);  }
+    else if ((millis()-timeStartedFace)/1000.0 > mtTime *.3 && (millis()-timeStartedFace)/1000.0 < mtTime *.55) {  k=3; }// println (k);  }
+    else if ((millis()-timeStartedFace)/1000.0 > mtTime *.55 && (millis()-timeStartedFace)/1000.0 < mtTime *.8) {  k=6; }// println (k);  }
     else if ((millis()-timeStartedFace)/1000.0 > mtTime *.8) { k=9; }// println (k); }
   //}
 
+for (int i=0; i<30; i++) {
+  
+}
 
   float pThresh = 150000;
   
@@ -479,6 +512,8 @@ void draw() {
         myPort.write(FanOnPins[i]);
         println("Fan ", FanOnPins[i]);
       }
+
+
 
 //      if (bUseSerial && (millis()-timeStartedFace)/1000.0 > mtTime *.75) {
 //        myPort.write('0');
@@ -501,12 +536,12 @@ void draw() {
       {
 //        strokeWeight(3);
 //        stroke(0, 255, 0);
-//        line(eA.x*screenWidth, eA.y*screenHeight, eB.x*screenWidth, eB.y*screenHeight); 
+//        line(eA.x*screenWidth , eA.y*screenHeight , eB.x*screenWidth , eB.y*screenHeight ); 
 
         locationB.x = eA.x *screenWidth *invWidth;
         locationB.y = eA.y *screenHeight *invHeight;
-//        locationB.x = eB.x *screenWidth *invWidth;
-//        locationB.y = eB.y *screenHeight *invHeight;   
+//        locationB.x = eA.x *screenWidth ;
+//        locationB.y = eA.y *screenHeight ;   
         
          if (startDust && useBlobs)  addForceBlobs(locationB.x, locationB.y, FanForcesX/10, FanForcesY/10);
       }
@@ -517,8 +552,8 @@ void draw() {
   // update the particles and create new
   if (startDust==true) {
     addForce(location.x, location.y, FanForcesX, FanForcesY); //FanForcesX and FanForcesY means the velocity and direction
+    addForce(location.x, location.y+.15, FanForcesX, FanForcesY); //FanForcesX and FanForcesY means the velocity and direction
     //addForce(mouseNormX, mouseNormY, FanForcesX, FanForcesY); //FanForcesX and FanForcesY means the velocity and direction
-    //addForce(mouseNormX, mouseNormY+.15, FanForcesX, FanForcesY); //FanForcesX and FanForcesY means the velocity and direction
   }
 
 
@@ -526,33 +561,47 @@ void draw() {
   totalAlive = 0;
 
 
-  // draw everything
+//  // draw everything
+//  pushMatrix();  
+//    image(ourBackground, 0, 0);
+//    scale(-1, 1);
+//    translate(-screenWidth, 0);
+//    pushMatrix(); // use this for rotate the aspect ratio into vertical mode;
+//      scale(1.3, 1.3);
+//      translate(-220, 15);
+//      image(stillFrame, 0, 0);
+//        if (mousePressed) saveFrame("data/savedBackground.jpg");
+//  //    noFill();
+//  //    rect(PosFaceX-faceXOff, (PosFaceY-50)+faceYOff, WidthFace+faceWOff, HeightFace+faceHOff);
+//  //    ellipse(location.x, location.y, 10, 10);
+//  //    ellipse(location.x, ( mouseNormY+.25)*screenHeight, 10, 10);
+//      if (startDust==true) particleSystem.updateAndDraw();
+//    popMatrix();
+//popMatrix();
+
+
   pushMatrix();  
     scale(-1, 1);
-    translate(-screenWidth, 0);
-    image(ourBackground, 0, 0);
-    //scale(-1, 1);
-    //translate(-screenWidth, 0);
-    //    pushMatrix(); // use this for rotate the aspect ratio into vertical mode;
-    //      scale(1.3, 1.3);
-    //      translate(-220, 15);
-    image(stillFrame, 0, 0);
-    //if (mousePressed) saveFrame("data/savedBackground.jpg");
-    //    noFill();
-    //    rect(PosFaceX-faceXOff, (PosFaceY-50)+faceYOff, WidthFace+faceWOff, HeightFace+faceHOff);
-    //    ellipse(location.x, location.y, 10, 10);
-    //    ellipse(location.x, ( mouseNormY+.25)*screenHeight, 10, 10);
-    if (startDust==true) particleSystem.updateAndDraw();
-    //    popMatrix();
-  popMatrix();
-
+    translate(-screenWidth+150, 10);
+//    image(ourBackground, 0, 0);
+//      pushMatrix(); // use this for rotate the aspect ratio into vertical mode;
+        scale(1.52, 1.7);
+        translate(-160, 0);
+        image(ourBackground, 0, 0);
+        image(stillFrame, 0, 0);
+        if (startDust==true) particleSystem.updateAndDraw();
+//     popMatrix();
+    popMatrix();
+    
   //println(frameRate);
 
   //reset the fan forces each loop, after drawing them
   //FanForcesX = Accel_x[0];
   //FanForcesY = Accel_y[0];
-}
-
+  
+  //}//client 
+  //*/
+}//draw
 
 // add force and dye to fluid, and create particles
 void addForce(float x, float y, float _FanForcesX, float _FanForcesY) {
@@ -609,7 +658,8 @@ void keyPressed() {
 
   case 'b':
     //CopyBG = true;
-    ourBackground.copy(liveCam, 0, 0, screenWidth, screenHeight, 0, 0, screenWidth, screenHeight);
+//    ourBackground.copy(liveCam, 0, 0, screenWidth, screenHeight, 0, 0, screenWidth, screenHeight);
+    ourBackground.copy(img, 0, 0, screenWidth, screenHeight, 0, 0, screenWidth, screenHeight);
     break;
 
   case '1':

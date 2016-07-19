@@ -4,7 +4,7 @@
 //String inputString = "";         // a string to hold incoming data
 //boolean stringComplete = false;  // whether the string is complete
 
-unsigned int Relays[] = {24, 26, 28, 30, 32, 34,   28, 30, 32};
+unsigned int Relays[] = {24, 26, 28,   30, 32, 34,   36, 38};
 
 //int mtTime = 30;  // mirrot total Time
 //boolean passHalf = false;
@@ -108,14 +108,15 @@ void serialEvent() {
     //          }
     //    }
 
-    // when the time (in processing) is over, turn everyone off
+    
     if (inChar == 'f') {
       for (int i = 6; i < 9; i++) {
         digitalWrite(Relays[i], RELAY_OFF);
       }
-      digitalWrite(Relays[1], RELAY_ON);
+      digitalWrite(Relays[3], RELAY_ON);
     }
 
+    // when the time (in processing) is over, turn everyone off
     if (inChar == 'o') {
       for (int i = 0; i < 9; i++) {
         digitalWrite(Relays[i], RELAY_OFF);

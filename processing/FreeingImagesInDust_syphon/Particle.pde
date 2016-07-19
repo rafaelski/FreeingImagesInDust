@@ -76,7 +76,7 @@ class Particle {
     y += vy;
 
     // bounce of edges
-    if (!rotate90) {
+//    if (!rotate90) {
       if (x<0) {
         x = 0;
         vx *= -1;
@@ -92,25 +92,25 @@ class Particle {
         y = screenHeight;
         vy *= -1;
       }
-    } 
-    else if (rotate90) {
-      // hacking to match with vertical sreen
-      if (x<429) {
-        x = 429;
-        vx *= -1;
-      } else if (x > screenWidth-376) {
-        x = screenWidth-376;
-        vx *= -1;
-      }
-
-      if (y<0) {
-        y = 0;
-        vy *= -1;
-      } else if (y > height) {
-        y = height;
-        vy *= -1;
-      }
-    } //end if
+//    } 
+//    else if (rotate90) {
+//      // hacking to match with vertical sreen
+//      if (x<429) {
+//        x = 429;
+//        vx *= -1;
+//      } else if (x > screenWidth-376) {
+//        x = screenWidth-376;
+//        vx *= -1;
+//      }
+//
+//      if (y<0) {
+//        y = 0;
+//        vy *= -1;
+//      } else if (y > height) {
+//        y = height;
+//        vy *= -1;
+//      }
+//    } //end if
     
 
     // hackish way to make particles glitter when the slow down a lot
